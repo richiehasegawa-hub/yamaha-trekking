@@ -41,7 +41,7 @@ const { useState, useEffect, useMemo, useCallback, useRef } = React;
 // ─── Initial 43 Trekking Records ───
 const INITIAL_DATA = [
   { id:1, date:"2022-05-21", name:"鳳来寺山", lat:34.98289522896481, lng:137.58296896839826, region:"愛知県新城市", difficulty:37, members:"鶴見、長谷川、堀、堀越", blog:"https://81trekking.blog.jp/archives/19490538.html", video:"", excerpt:"記念すべき初回は鳳来寺山(標高681m)、湯谷温泉から行者越えルートで鳳来寺まで登り", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/3/7/37aaed98-s.jpg"] },
-  { id:2, date:"2022-06-12", name:"尉ヶ峰", lat:34.8234315468447, lng:137.60816903219427, region:"浜松市引佐", difficulty:null, members:"堀、長谷川、業天、堀越", blog:"https://81trekking.blog.jp/archives/19491550.html", video:"", excerpt:"浜名湖の北にある尉ヶ峰(標高433m)に登った。気軽に登れる山で、", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/b/f/bf975ad9.jpg"] },
+  { id:2, date:"2022-06-12", name:"尉ヶ峰", lat:34.8234315468447, lng:137.60816903219427, region:"浜松市引佐", difficulty:39, members:"堀、長谷川、業天、堀越", blog:"https://81trekking.blog.jp/archives/19491550.html", video:"", excerpt:"浜名湖の北にある尉ヶ峰(標高433m)に登った。気軽に登れる山で、", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/b/f/bf975ad9.jpg"] },
   { id:3, date:"2022-07-24", name:"富幕山", lat:34.85035346746764, lng:137.58732641687337, region:"浜松市引佐", difficulty:31, members:"長谷川、堀、鶴見、堀越", blog:"https://81trekking.blog.jp/archives/19491819.html", video:"", excerpt:"瓶割峠から富幕山(標高563m)に登る。真夏だったが、登山道は木立の影で涼しく", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/e/b/ebe044af.jpg"] },
   { id:4, date:"2022-09-11", name:"猿投山", lat:35.20683366170724, lng:137.166799517168, region:"愛知県瀬戸市", difficulty:36, members:"鶴見、業天、堀、長谷川、堀越", blog:"https://81trekking.blog.jp/archives/19495262.html", video:"", excerpt:"猿投神社から猿投山(標高629m)に登る。猿投山は毎日登山している人", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/c/e/ce2c2d61-s.jpg"] },
   { id:5, date:"2022-10-23", name:"本宮山", lat:34.91030601518789, lng:137.42054321692268, region:"愛知県豊川市", difficulty:35, members:"業天、鶴見、堀、堀越", blog:"https://81trekking.blog.jp/archives/19495471.html", video:"", excerpt:"広葉樹に囲まれた登山道が気持ちいい。砥鹿神社奥宮に至る直前は階段が続き", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/0/6/0661cd45.jpg"] },
@@ -74,15 +74,15 @@ const INITIAL_DATA = [
   { id:32, date:"2025-03-02", name:"秋葉山", lat:34.981474583638004, lng:137.86607546791828, region:"浜松市天竜区", difficulty:32, members:"鶴見、長谷川、業天、二橋、堀越", blog:"https://81trekking.blog.jp/archives/27044688.html", video:"https://youtu.be/Dr7xJeDYW5U", excerpt:"雨が心配だったが、曇り時々日が差し、暖かい天気のなか秋葉山へ。いきなり車が通る舗装道路なのに急登", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/2/e/2e1a341d-s.jpg"] },
   { id:33, date:"2025-04-07", name:"天城山", lat:34.86366202576078, lng:139.0016635035333, region:"静岡県賀茂郡東伊豆町", difficulty:25, members:"堀越(リーダー)、鶴見、二橋、業天、長谷川", blog:"https://81trekking.blog.jp/archives/27354072.html", video:"https://youtu.be/haf6HdC3_jc", excerpt:"100名山の天城山しゃくなげコースを周回。前日は計画していた金冠山と達磨山は雨のため中止", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/7/1/710e1a8f.jpg"] },
   { id:34, date:"2025-04-27", name:"宇連山（しゃくなげ）", lat:35.01948639785868, lng:137.61984518856684, region:"愛知県設楽町", difficulty:40, members:"二橋（リーダー）、業天、鶴見、堀越、長谷川", blog:"https://81trekking.blog.jp/archives/27518842.html", video:"https://youtu.be/ehNUj1A78WY", excerpt:"宇連山(愛知県)東尾根にあるシャクナゲ群生地を見に行った。モリトピアから急登を登り", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/f/8/f807187f.jpg"] },
-  { id:35, date:"2025-06-01", name:"石巻山", lat:34.789528976256605, lng:137.45979897671276, region:"愛知県豊橋市", difficulty:null, members:"堀越、堀、長谷川", blog:"https://81trekking.blog.jp/archives/27813875.html", video:"https://youtu.be/1tAKldXGnpw", excerpt:"湖西連峰から少しはずれた豊橋市の石巻山へ、石巻山は低山なので軽視していたが、見どころが色々とあり", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/a/d/ad1dbb14.jpg"] },
-  { id:36, date:"2025-07-13", name:"大滝渓谷", lat:35.06780078499569, lng:137.24293557790935, region:"愛知県豊田市", difficulty:null, members:"堀越、堀、長谷川", blog:"https://81trekking.blog.jp/archives/28089718.html", video:"https://youtu.be/x-k1_RlUsf4", excerpt:"梟ヶ城址展望台を目指して木陰の登山道を行くが、風が全くなく、湿度あり、汗が噴き出してくる", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/a/a/aa8b7e3e.jpg"] },
-  { id:37, date:"2025-09-15", name:"本宮山（小國神社）", lat:34.88911697774007, lng:137.91004278508163, region:"静岡県森町", difficulty:null, members:"堀越、業天、斎藤、堀、長谷川", blog:"https://81trekking.blog.jp/archives/28480645.html", video:"https://youtu.be/C56CPowtIFk", excerpt:"小國神社の奥社がある遠州本宮山へ。前日の雨はあがったが、蒸し暑かった。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/7/6/76ab0449.jpg"] },
-  { id:38, date:"2025-10-29", name:"観音山", lat:34.90196144885735, lng:137.74485090480744, region:"静岡県浜松市", difficulty:null, members:"堀越、堀、長谷川", blog:"https://81trekking.blog.jp/archives/28765075.html", video:"https://youtu.be/ZWnoOesUPB8", excerpt:"浜松市の観音山はお気に入りの山で堀越は5回目、今年の2月以来。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/8/d/8d290d1c-s.jpg"] },
-  { id:39, date:"2025-11-17", name:"雨ヶ岳", lat:35.434378144846306, lng:138.55885356441172, region:"山梨県南巨摩郡身延町", difficulty:null, members:"堀越、業天、長谷川", blog:"https://81trekking.blog.jp/archives/28878478.html", video:"https://www.youtube.com/watch?v=34gQgxzGgdA", excerpt:"本栖湖畔にある雨ヶ岳、富士山の眺望がすばらしいとのことで、以前から登りたいと思っていた。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/8/5/85fc8f8c-s.jpg"] },
-  { id:40, date:"2026-01-11", name:"高草山", lat:34.906451547603396, lng:138.3167521588823, region:"静岡県藤枝市", difficulty:null, members:"堀越、赤星、堀、斎藤眞介、長谷川、鶴見", blog:"https://81trekking.blog.jp/archives/29289039.html", video:"https://youtu.be/wtJPdVusVwI", excerpt:"風で体が吹き飛ばれそうな強風のなか、焼津の高草山に登った。林叟院の駐車場に駐めBコースを", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/7/c/7c33e1e2.jpg"] },
-  { id:41, date:"2026-02-22", name:"岩古谷山", lat:35.0883775074216, lng:137.60100251492284, region:"愛知県設楽町", difficulty:null, members:"堀越、鶴見、業天、長谷川", blog:"https://81trekking.blog.jp/archives/29566615.html", video:"https://youtu.be/vngvu-t5-d8", excerpt:"反時計回りの周回のルートをとる。夜からは雨予報なのに時々暖かい日差しが射す。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/d/8/d862674b.jpg"] },
-  { id:42, date:"2026-03-22", name:"金丸山大丸山", lat:35.14983355513964, lng:138.59612213396105, region:"静岡県富士市", difficulty:null, members:"堀越、鶴見、業天、長谷川", blog:"https://81trekking.blog.jp/archives/29733614.html", video:"https://youtu.be/xNAcyE4wPQU", excerpt:"富士山が見えたので予定を変更して蒲原三山を反時計回りに縦走。蒲原駅に車をとめ", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/6/0/60a75438.jpg"] },
-  { id:43, date:"2026-04-12", name:"藤枝びく石", lat:34.9610020892629, lng:138.224817371828, region:"静岡県藤枝市", difficulty:null, members:"堀越、業天、鶴見、堀、長谷川", blog:"https://81trekking.blog.jp/archives/29850843.html", video:"https://youtu.be/vGZqP7OocLs", excerpt:"不動の滝を見て、笹川登山口⇒びく石山頂⇒笹川峠⇒笹川集落と反時計回りに周回した。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/5/7/5777c73c.jpg"] },
+  { id:35, date:"2025-06-01", name:"石巻山", lat:34.789528976256605, lng:137.45979897671276, region:"愛知県豊橋市", difficulty:28, members:"堀越、堀、長谷川", blog:"https://81trekking.blog.jp/archives/27813875.html", video:"https://youtu.be/1tAKldXGnpw", excerpt:"湖西連峰から少しはずれた豊橋市の石巻山へ、石巻山は低山なので軽視していたが、見どころが色々とあり", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/a/d/ad1dbb14.jpg"] },
+  { id:36, date:"2025-07-13", name:"大滝渓谷", lat:35.06780078499569, lng:137.24293557790935, region:"愛知県豊田市", difficulty:17, members:"堀越、堀、長谷川", blog:"https://81trekking.blog.jp/archives/28089718.html", video:"https://youtu.be/x-k1_RlUsf4", excerpt:"梟ヶ城址展望台を目指して木陰の登山道を行くが、風が全くなく、湿度あり、汗が噴き出してくる", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/a/a/aa8b7e3e.jpg"] },
+  { id:37, date:"2025-09-15", name:"本宮山（小國神社）", lat:34.88911697774007, lng:137.91004278508163, region:"静岡県森町", difficulty:35, members:"堀越、業天、斎藤、堀、長谷川", blog:"https://81trekking.blog.jp/archives/28480645.html", video:"https://youtu.be/C56CPowtIFk", excerpt:"小國神社の奥社がある遠州本宮山へ。前日の雨はあがったが、蒸し暑かった。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/7/6/76ab0449.jpg"] },
+  { id:38, date:"2025-10-29", name:"観音山", lat:34.90196144885735, lng:137.74485090480744, region:"静岡県浜松市", difficulty:28, members:"堀越、堀、長谷川", blog:"https://81trekking.blog.jp/archives/28765075.html", video:"https://youtu.be/ZWnoOesUPB8", excerpt:"浜松市の観音山はお気に入りの山で堀越は5回目、今年の2月以来。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/8/d/8d290d1c-s.jpg"] },
+  { id:39, date:"2025-11-17", name:"雨ヶ岳", lat:35.434378144846306, lng:138.55885356441172, region:"山梨県南巨摩郡身延町", difficulty:44, members:"堀越、業天、長谷川", blog:"https://81trekking.blog.jp/archives/28878478.html", video:"https://www.youtube.com/watch?v=34gQgxzGgdA", excerpt:"本栖湖畔にある雨ヶ岳、富士山の眺望がすばらしいとのことで、以前から登りたいと思っていた。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/8/5/85fc8f8c-s.jpg"] },
+  { id:40, date:"2026-01-11", name:"高草山", lat:34.906451547603396, lng:138.3167521588823, region:"静岡県藤枝市", difficulty:24, members:"堀越、赤星、堀、斎藤眞介、長谷川、鶴見", blog:"https://81trekking.blog.jp/archives/29289039.html", video:"https://youtu.be/wtJPdVusVwI", excerpt:"風で体が吹き飛ばれそうな強風のなか、焼津の高草山に登った。林叟院の駐車場に駐めBコースを", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/7/c/7c33e1e2.jpg"] },
+  { id:41, date:"2026-02-22", name:"岩古谷山", lat:35.0883775074216, lng:137.60100251492284, region:"愛知県設楽町", difficulty:14, members:"堀越、鶴見、業天、長谷川", blog:"https://81trekking.blog.jp/archives/29566615.html", video:"https://youtu.be/vngvu-t5-d8", excerpt:"反時計回りの周回のルートをとる。夜からは雨予報なのに時々暖かい日差しが射す。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/d/8/d862674b.jpg"] },
+  { id:42, date:"2026-03-22", name:"金丸山大丸山", lat:35.14983355513964, lng:138.59612213396105, region:"静岡県富士市", difficulty:38, members:"堀越、鶴見、業天、長谷川", blog:"https://81trekking.blog.jp/archives/29733614.html", video:"https://youtu.be/xNAcyE4wPQU", excerpt:"富士山が見えたので予定を変更して蒲原三山を反時計回りに縦走。蒲原駅に車をとめ", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/6/0/60a75438.jpg"] },
+  { id:43, date:"2026-04-12", name:"藤枝びく石", lat:34.9610020892629, lng:138.224817371828, region:"静岡県藤枝市", difficulty:25, members:"堀越、業天、鶴見、堀、長谷川", blog:"https://81trekking.blog.jp/archives/29850843.html", video:"https://youtu.be/vGZqP7OocLs", excerpt:"不動の滝を見て、笹川登山口⇒びく石山頂⇒笹川峠⇒笹川集落と反時計回りに周回した。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/5/7/5777c73c.jpg"] },
 ];
 
 const STORAGE_KEY = "trekking81-data";
@@ -105,16 +105,14 @@ const getSeason = (dateStr) => {
 const getSeasonEmoji = (s) => ({ "春": "🌸", "夏": "☀️", "秋": "🍁", "冬": "❄️" }[s] || "");
 const getDiffLabel = (d) => {
   if (!d) return "未設定";
-  if (d <= 30) return "初級";
-  if (d <= 38) return "中級";
-  if (d <= 45) return "上級";
-  return "健脚";
+  if (d < 30) return "初級";
+  if (d <= 43) return "中級";
+  return "上級";
 };
 const getDiffColor = (d) => {
   if (!d) return "#94a3b8";
-  if (d <= 30) return "#22c55e";
-  if (d <= 38) return "#eab308";
-  if (d <= 45) return "#f97316";
+  if (d < 30) return "#22c55e";
+  if (d <= 43) return "#eab308";
   return "#ef4444";
 };
 const formatDate = (d) => {
@@ -688,9 +686,8 @@ function MapView({ treks, onSelectTrek }) {
       // Custom icon
       const createIcon = (difficulty) => {
         const color = difficulty ? (
-          difficulty <= 30 ? "#22c55e" :
-          difficulty <= 38 ? "#eab308" :
-          difficulty <= 45 ? "#f97316" : "#ef4444"
+          difficulty < 30 ? "#22c55e" :
+          difficulty <= 43 ? "#eab308" : "#ef4444"
         ) : "#94a3b8";
 
         return L.divIcon({
@@ -794,10 +791,9 @@ function MapView({ treks, onSelectTrek }) {
         flexWrap:"wrap",
       }}>
         {[
-          { color:"#22c55e", label:"初級 (〜30)" },
-          { color:"#eab308", label:"中級 (31〜38)" },
-          { color:"#f97316", label:"上級 (39〜45)" },
-          { color:"#ef4444", label:"健脚 (46〜)" },
+          { color:"#22c55e", label:"初級 (〜29)" },
+          { color:"#eab308", label:"中級 (30〜43)" },
+          { color:"#ef4444", label:"上級 (44〜)" },
           { color:"#94a3b8", label:"未設定" },
         ].map(({ color, label }) => (
           <div key={label} style={{ display:"flex", alignItems:"center", gap:6 }}>
@@ -961,10 +957,9 @@ function TrekkingApp() {
     let result = [...treks];
     if (seasonFilter !== "all") result = result.filter(t => getSeason(t.date) === seasonFilter);
     if (diffFilter !== "all") {
-      if (diffFilter === "beginner") result = result.filter(t => t.difficulty && t.difficulty <= 30);
-      if (diffFilter === "mid") result = result.filter(t => t.difficulty && t.difficulty > 30 && t.difficulty <= 38);
-      if (diffFilter === "advanced") result = result.filter(t => t.difficulty && t.difficulty > 38 && t.difficulty <= 45);
-      if (diffFilter === "expert") result = result.filter(t => t.difficulty && t.difficulty > 45);
+      if (diffFilter === "beginner") result = result.filter(t => t.difficulty && t.difficulty < 30);
+      if (diffFilter === "mid") result = result.filter(t => t.difficulty && t.difficulty >= 30 && t.difficulty <= 43);
+      if (diffFilter === "advanced") result = result.filter(t => t.difficulty && t.difficulty >= 44);
       if (diffFilter === "none") result = result.filter(t => !t.difficulty);
     }
     if (prefFilter !== "all") result = result.filter(t => getPrefecture(t.region) === prefFilter);
@@ -1085,7 +1080,7 @@ function TrekkingApp() {
 
               <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 4px" }}>|</span>
               <span style={{ color:"rgba(255,255,255,0.4)", fontSize:12, fontWeight:700, marginRight:4, whiteSpace:"nowrap" }}>難易度</span>
-              {[["all","全て"],["beginner","初級"],["mid","中級"],["advanced","上級"],["expert","健脚"],["none","未設定"]].map(([v, l]) => (
+              {[["all","全て"],["beginner","初級"],["mid","中級"],["advanced","上級"],["none","未設定"]].map(([v, l]) => (
                 <button key={v} style={btnStyle(diffFilter === v)} onClick={() => setDiffFilter(v)}>{l}</button>
               ))}
 
