@@ -33,7 +33,7 @@ window.storage = {
   async delete(key) { localStorage.removeItem("trek_" + key); return { key, deleted: true }; },
   async list(prefix) { const keys = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("trek_" + (prefix || ""))) keys.push(k.replace("trek_", "")); } return { keys }; }
 };
-if (typeof sendPrompt === "undefined") { window.sendPrompt = function(msg) { alert("この機能はClaude.aiチャット内でのみ動作します。\n\nデータ更新が必要な場合は、HTMLファイルのINITIAL_DATAを直接編集してください。"); }; }
+if (typeof sendPrompt === "undefined") { window.sendPrompt = function(msg) { alert("この機能はClaude.aiチャット内でのみ動作します。"); }; }
 </script>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, useRef } = React;
@@ -92,7 +92,7 @@ const LOCAL_TREKS_KEY = "trekking81-local-treks";   // locally added treks (not 
 const DATA_VERSION_KEY = "trekking81-data-version";
 
 // ─── Data version: changes when INITIAL_DATA is updated by Claude ───
-const INITIAL_DATA_VERSION = "v" + INITIAL_DATA.length + "-" + (INITIAL_DATA[INITIAL_DATA.length - 1]?.id || 0) + "-" + (INITIAL_DATA.reduce((s, t) => s + (t.difficulty || 0), 0));
+const INITIAL_DATA_VERSION = "v2-" + INITIAL_DATA.length + "-" + (INITIAL_DATA[INITIAL_DATA.length - 1]?.id || 0) + "-" + (INITIAL_DATA.reduce((s, t) => s + (t.difficulty || 0), 0)) + "-p" + INITIAL_DATA.filter(t => t.photos && t.photos.length > 0).length + "-" + INITIAL_DATA.reduce((s, t) => s + (t.photos?.[0]?.length || 0), 0);
 
 // ─── Helpers ───
 const getSeason = (dateStr) => {
