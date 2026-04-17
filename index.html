@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ヤマハトレッキング図鑑</title>
+<meta name="description" content="ヤマハトレッキングクラブの山岳コレクション。東海エリアの山々を写真とともに。">
+<meta name="theme-color" content="#1a2e1a">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏔️</text></svg>">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a2e1a; overflow-x: hidden; }
+  #root { min-height: 100vh; }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #0f1f0f; }
+  ::-webkit-scrollbar-thumb { background: #2d5a27; border-radius: 4px; }
+  select option { background: #1a2e1a; color: #fff; }
+  .leaflet-popup-content-wrapper { border-radius: 12px !important; padding: 0 !important; overflow: hidden; }
+  .leaflet-popup-content { margin: 14px 20px !important; }
+  .leaflet-popup-close-button { color: #666 !important; font-size: 20px !important; padding: 6px 8px !important; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.5/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="root"></div>
+<script>
+window.storage = {
+  async get(key) { const val = localStorage.getItem("trek_" + key); return val !== null ? { key, value: val } : null; },
+  async set(key, value) { localStorage.setItem("trek_" + key, value); return { key, value }; },
+  async delete(key) { localStorage.removeItem("trek_" + key); return { key, deleted: true }; },
+  async list(prefix) { const keys = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("trek_" + (prefix || ""))) keys.push(k.replace("trek_", "")); } return { keys }; }
+};
+if (typeof sendPrompt === "undefined") { window.sendPrompt = function(msg) { alert("この機能はClaude.aiチャット内でのみ動作します。\n\nデータ更新が必要な場合は、HTMLファイルのINITIAL_DATAを直接編集してください。"); }; }
+</script>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
+
+// ─── Initial 43 Trekking Records ───
+const INITIAL_DATA = [
+  { id:1, date:"2022-05-21", name:"鳳来寺山", lat:34.98289522896481, lng:137.58296896839826, region:"愛知県新城市", difficulty:37, members:"鶴見、長谷川、堀、堀越", blog:"https://81trekking.blog.jp/archives/19490538.html", video:"", excerpt:"記念すべき初回は鳳来寺山(標高681m)、湯谷温泉から行者越えルートで鳳来寺まで登り", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/3/7/37aaed98-s.jpg"] },
+  { id:2, date:"2022-06-12", name:"尉ヶ峰", lat:34.8234315468447, lng:137.60816903219427, region:"浜松市引佐", difficulty:null, members:"堀、長谷川、業天、堀越", blog:"https://81trekking.blog.jp/archives/19491550.html", video:"", excerpt:"浜名湖の北にある尉ヶ峰(標高433m)に登った。気軽に登れる山で、", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/b/f/bf975ad9.jpg"] },
+  { id:3, date:"2022-07-24", name:"富幕山", lat:34.85035346746764, lng:137.58732641687337, region:"浜松市引佐", difficulty:31, members:"長谷川、堀、鶴見、堀越", blog:"https://81trekking.blog.jp/archives/19491819.html", video:"", excerpt:"瓶割峠から富幕山(標高563m)に登る。真夏だったが、登山道は木立の影で涼しく", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/e/b/ebe044af.jpg"] },
+  { id:4, date:"2022-09-11", name:"猿投山", lat:35.20683366170724, lng:137.166799517168, region:"愛知県瀬戸市", difficulty:36, members:"鶴見、業天、堀、長谷川、堀越", blog:"https://81trekking.blog.jp/archives/19495262.html", video:"", excerpt:"猿投神社から猿投山(標高629m)に登る。猿投山は毎日登山している人", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/c/e/ce2c2d61-s.jpg"] },
+  { id:5, date:"2022-10-23", name:"本宮山", lat:34.91030601518789, lng:137.42054321692268, region:"愛知県豊川市", difficulty:35, members:"業天、鶴見、堀、堀越", blog:"https://81trekking.blog.jp/archives/19495471.html", video:"", excerpt:"広葉樹に囲まれた登山道が気持ちいい。砥鹿神社奥宮に至る直前は階段が続き", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/0/6/0661cd45.jpg"] },
+  { id:6, date:"2022-11-03", name:"宇連山", lat:35.02351127735806, lng:137.59824584770243, region:"愛知県設楽町", difficulty:40, members:"業天、鶴見、長谷川、堀越", blog:"https://81trekking.blog.jp/archives/19495491.html", video:"", excerpt:"県民の森モリトピアを出発、平坦な道が2km続き退屈。その後急登が始まり", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/0/e/0edd3262-s.jpg"] },
+  { id:7, date:"2022-12-12", name:"黒岳・越前岳", lat:35.25391827175401, lng:138.81800905297342, region:"静岡県裾野市", difficulty:41, members:"鶴見、堀、業天、長谷川、堀越", blog:"https://81trekking.blog.jp/archives/19495509.html", video:"", excerpt:"大沢林道奥の駐車場から黒岳(1086m)へと登り、さらに愛鷹山塊最高峰の越前岳", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/c/e/ceb7756d-s.jpg"] },
+  { id:8, date:"2023-01-29", name:"浜石岳", lat:35.12099727236136, lng:138.53338658641033, region:"静岡県由比町", difficulty:38, members:"堀、鶴見、業天、長谷川、堀越", blog:"https://81trekking.blog.jp/archives/19495520.html", video:"", excerpt:"浜石岳はたくさんの人、富士山の眺望がすばらしい、南アルプス、伊豆半島など", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/3/f/3f75b3f1-s.jpg"] },
+  { id:9, date:"2023-02-26", name:"八高山", lat:34.90833264282337, lng:138.05683923511506, region:"静岡県島田市", difficulty:38, members:"長谷川、鶴見、堀、堀越", blog:"https://81trekking.blog.jp/archives/19495533.html", video:"", excerpt:"大井川鉄道の福用駅より登山開始。最初は急登あるが、そのあと平坦", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/3/1/31377b68.jpg"] },
+  { id:10, date:"2023-04-23", name:"湖西連峰", lat:34.751816761743, lng:137.47436546793958, region:"湖西市", difficulty:26, members:"鶴見、長谷川、業天、大塚、堀越", blog:"https://81trekking.blog.jp/archives/19495548.html", video:"", excerpt:"新所原駅より登山開始、神石山経由大知波峠で昼食、ソーセージを焼く", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/9/0/9082613a-s.jpg"] },
+  { id:11, date:"2023-05-02", name:"宮路山・五井山", lat:34.84944260108418, lng:137.290911232224, region:"愛知県豊川市", difficulty:29, members:"業天、堀、長谷川、鶴見、堀越", blog:"https://81trekking.blog.jp/archives/19495555.html", video:"", excerpt:"名電赤坂駅より旧赤坂宿の町並みを経由して、宮路山へ。ツツジが有名", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/7/0/7057ce7d.jpg"] },
+  { id:12, date:"2023-06-04", name:"鳳来寺山・瑠璃山", lat:34.98394939785818, lng:137.5825670822315, region:"愛知県新城市", difficulty:37, members:"堀、長谷川、鶴見、業天、二橋、堀越", blog:"https://81trekking.blog.jp/archives/19886001.html", video:"https://www.youtube.com/watch?v=Wn3dPe3LOYY", excerpt:"梅雨の合間の奇跡的な抜けるような青空の晴。1300段の階段", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/c/4/c410da63.jpg"] },
+  { id:13, date:"2023-06-25", name:"毛無山", lat:35.41748330816972, lng:138.54332900239157, region:"静岡県富士宮市", difficulty:56, members:"業天、二橋、鶴見、堀越", blog:"https://81trekking.blog.jp/archives/20259475.html", video:"", excerpt:"200名山の毛無山。朝霧ジャンボリー近くの登山口から1946mの山頂まで", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/9/f/9f4abd88.jpg"] },
+  { id:14, date:"2023-07-23", name:"寧比曽岳", lat:35.13850136927691, lng:137.43907673245465, region:"愛知県豊田市", difficulty:29, members:"長谷川、堀、業天、二橋、大塚、堀越", blog:"https://81trekking.blog.jp/archives/20891960.html", video:"", excerpt:"段戸湖の登山口から出発、標高が1000m近くなので少し涼しい。登山道はだらだらした登り", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/2/a/2a47bd22.jpg"] },
+  { id:15, date:"2023-08-27", name:"身延山", lat:35.398475071393335, lng:138.4166825173276, region:"山梨県早川町", difficulty:35, members:"大塚、業天、二橋、堀越", blog:"https://81trekking.blog.jp/archives/21476173.html", video:"", excerpt:"電車で身延駅、さらにバスで身延山入口まで。山門をくぐるといきなり287段の階段", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/1/f/1fa0bdd1.jpg"] },
+  { id:16, date:"2023-09-17", name:"宇連山(棚山周遊)", lat:35.00641776119606, lng:137.57441968063472, region:"愛知県新城市", difficulty:40, members:"鶴見、大塚、二橋、堀、長谷川、堀越", blog:"https://81trekking.blog.jp/archives/21723145.html", video:"https://youtu.be/uBeUIZV9fKA", excerpt:"林道が悪路で大変。登山口⇒棚山高原⇒瀬戸岩⇒棚山⇒宇連山頂⇒登山道と周回", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/e/4/e4d49122.jpg"] },
+  { id:17, date:"2023-10-30", name:"明神山", lat:35.05097743985632, lng:137.6624543323818, region:"愛知県東栄町", difficulty:47, members:"二橋、鶴見、長谷川、掘、大塚、堀越", blog:"https://81trekking.blog.jp/archives/22283413.html", video:"https://youtu.be/3A_qxAF7LeU", excerpt:"雲ひとつない快晴、川を渡り、ゆるやかな登りが続き、三ツ瀬峠に", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/0/0/005aab98.jpg"] },
+  { id:18, date:"2023-11-12", name:"長者ヶ岳", lat:35.342558247882, lng:138.5350152408836, region:"静岡県富士宮市", difficulty:35, members:"業天、鶴見、長谷川、掘、二橋、大塚、堀越", blog:"https://81trekking.blog.jp/archives/22501531.html", video:"https://youtu.be/UKVkI1vrIiI", excerpt:"田貫湖岸登山口を出発。富士山に傘雲がかかっていて、全容が見えない", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/c/c/ccd8e089-s.jpg"] },
+  { id:19, date:"2023-12-03", name:"真富士山", lat:35.15584195804795, lng:138.39487461263283, region:"静岡県静岡市平野", difficulty:45, members:"堀、鶴見、業天、堀越", blog:"https://81trekking.blog.jp/archives/22729212.html", video:"", excerpt:"狭い林道を6KMほど走り、平野第三登山口より出発。まず第二真富士山を目指す", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/0/0/00a4021d.jpg"] },
+  { id:20, date:"2024-01-14", name:"花沢山&満観峰", lat:34.92419739599267, lng:138.32618594895442, region:"静岡県焼津市", difficulty:35, members:"業天、鶴見、堀、二橋、大塚、堀越", blog:"https://81trekking.blog.jp/archives/23180392.html", video:"", excerpt:"天気も晴れ、風もなく、当初は寒かったが次第に暖かくなってくる。まず花沢山へ", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/c/f/cfdd9e87-s.jpg"] },
+  { id:21, date:"2024-02-11", name:"竜爪山", lat:35.093904223567826, lng:138.4035191125507, region:"静岡県静岡市平山", difficulty:43, members:"長谷川、鶴見、業天、二橋、堀越", blog:"https://81trekking.blog.jp/archives/23479382.html", video:"https://youtu.be/3jgQaRwtgM4", excerpt:"途中の穂積神社まで室町時代からといわれる古い登山道を登る。天気は晴れ", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/a/1/a14471b0.jpg"] },
+  { id:22, date:"2024-03-03", name:"浜石岳(2回目)", lat:35.12099727236136, lng:138.53338658641033, region:"静岡県由比町", difficulty:35, members:"鶴見、二橋、業天、長谷川、堀、堀越", blog:"https://81trekking.blog.jp/archives/23737663.html", video:"https://youtu.be/hr9o40Nny8A", excerpt:"2回目なので東の入山親水公園からのルートで登る。道はそれほどきつくはない", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/e/7/e7264633.jpg"] },
+  { id:23, date:"2024-04-28", name:"藤原岳", lat:35.161950306662675, lng:136.45503816316048, region:"三重県いなべ市", difficulty:39, members:"二橋、鶴見、業天、長谷川、堀越", blog:"https://81trekking.blog.jp/archives/24283687.html", video:"https://youtu.be/PBYERYUfvls", excerpt:"花の百名山の藤原岳、三重県は初挑戦。8時半に登山開始。登山道は人が多く少し渋滞", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/9/a/9a303656.jpg"] },
+  { id:24, date:"2024-05-03", name:"上臈岩(宇連山)", lat:35.01885376865155, lng:137.6364013113128, region:"愛知県新城市", difficulty:36, members:"鶴見、業天、堀越", blog:"https://81trekking.blog.jp/archives/24331497.html", video:"", excerpt:"隠れた絶景場所という鳳来湖を望む上臈岩(宇連山)に行ってきた", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/b/6/b6b7f5af-s.jpg"] },
+  { id:25, date:"2024-05-12", name:"猿投山(2回目)", lat:35.20683366170724, lng:137.166799517168, region:"愛知県瀬戸市", difficulty:36, members:"業天、鶴見、二橋、堀越", blog:"https://81trekking.blog.jp/archives/24413810.html", video:"", excerpt:"今回の西側ルートの変化はあまりなく、登山者も東側より少なかった。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/f/7/f70d0521.jpg"] },
+  { id:26, date:"2024-09-08", name:"本宮山(くらがり渓谷)", lat:34.937796234025114, lng:137.4002124997918, region:"愛知県岡崎市", difficulty:35, members:"長谷川、鶴見、二橋、堀越", blog:"https://81trekking.blog.jp/archives/25528528.html", video:"https://youtu.be/Fxnk1cTIqDE", excerpt:"雨で延期延期で4カ月ぶり。前回は参道ルートで登ったが、今回は裏の「くらがり渓谷」ルート", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/6/5/6537e1ee-s.jpg"] },
+  { id:27, date:"2024-10-10", name:"木曾駒ケ岳", lat:35.79031329875012, lng:137.8042293562834, region:"長野県上松町", difficulty:46, members:"業天、長谷川、鶴見、二橋、堀越", blog:"https://81trekking.blog.jp/archives/25816995.html", video:"https://youtu.be/l3k1pAXGGOQ", excerpt:"千畳敷カールの本格的な紅葉はまだ1週間くらいは必要な状況。前日は雨だったのに当日は見事な晴れ", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/6/9/69e6d72a-s.jpg"] },
+  { id:28, date:"2024-11-17", name:"粟ヶ岳", lat:34.841715911684, lng:138.06734794569408, region:"静岡県掛川市", difficulty:40, members:"鶴見、業天、二橋、長谷川、堀越", blog:"https://81trekking.blog.jp/archives/26170220.html", video:"https://youtu.be/KvgzwHm392o", excerpt:"茶畑や笹原の中を登っていく。粟ヶ岳からさらに岳山を往復して馬鹿にできない厳しいルート", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/f/d/fdaab5a1-s.jpg"] },
+  { id:29, date:"2024-12-01", name:"越前岳", lat:35.23896309745295, lng:138.7938600865083, region:"静岡県富士市", difficulty:35, members:"二橋、業天、鶴見、長谷川、堀越", blog:"https://81trekking.blog.jp/archives/26273094.html", video:"https://youtu.be/FTqkdnTqAAs", excerpt:"富士山は雲ひとつない姿を見せてくれたが、11時くらいになると雲がたちまち覆ってまったく見えなくなる", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/c/4/c4283a6a-s.jpg"] },
+  { id:30, date:"2025-01-26", name:"貫ヶ岳", lat:35.197244697959285, lng:138.48043217866632, region:"山梨県南巨摩郡", difficulty:35, members:"業天、堀越、長谷川", blog:"https://81trekking.blog.jp/archives/26756729.html", video:"https://youtu.be/RYoMRKH8uv4", excerpt:"東名を走っているとフロントガラス前方に雪を抱いた富士山が雲ひとつない青空をバックに見え、期待が高まる。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/8/e/8ef028eb.jpg"] },
+  { id:31, date:"2025-02-19", name:"宮路山・五井山縦走", lat:34.84699365540499, lng:137.25905503455468, region:"愛知県蒲郡市", difficulty:37, members:"長谷川、業天、鶴見、堀越", blog:"https://81trekking.blog.jp/archives/26956882.html", video:"https://youtu.be/jdkEszfnJww", excerpt:"名電赤坂駅⇒宮路山⇒五井山⇒JR三河三谷駅という前回とは違うルート。宮路山へは急登ルート", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/f/e/feb07912.jpg"] },
+  { id:32, date:"2025-03-02", name:"秋葉山", lat:34.981474583638004, lng:137.86607546791828, region:"浜松市天竜区", difficulty:32, members:"鶴見、長谷川、業天、二橋、堀越", blog:"https://81trekking.blog.jp/archives/27044688.html", video:"https://youtu.be/Dr7xJeDYW5U", excerpt:"雨が心配だったが、曇り時々日が差し、暖かい天気のなか秋葉山へ。いきなり車が通る舗装道路なのに急登", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/2/e/2e1a341d-s.jpg"] },
+  { id:33, date:"2025-04-07", name:"天城山", lat:34.86366202576078, lng:139.0016635035333, region:"静岡県賀茂郡東伊豆町", difficulty:25, members:"堀越(リーダー)、鶴見、二橋、業天、長谷川", blog:"https://81trekking.blog.jp/archives/27354072.html", video:"https://youtu.be/haf6HdC3_jc", excerpt:"100名山の天城山しゃくなげコースを周回。前日は計画していた金冠山と達磨山は雨のため中止", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/7/1/710e1a8f.jpg"] },
+  { id:34, date:"2025-04-27", name:"宇連山（しゃくなげ）", lat:35.01948639785868, lng:137.61984518856684, region:"愛知県設楽町", difficulty:40, members:"二橋（リーダー）、業天、鶴見、堀越、長谷川", blog:"https://81trekking.blog.jp/archives/27518842.html", video:"https://youtu.be/ehNUj1A78WY", excerpt:"宇連山(愛知県)東尾根にあるシャクナゲ群生地を見に行った。モリトピアから急登を登り", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/f/8/f807187f.jpg"] },
+  { id:35, date:"2025-06-01", name:"石巻山", lat:34.789528976256605, lng:137.45979897671276, region:"愛知県豊橋市", difficulty:null, members:"堀越、堀、長谷川", blog:"https://81trekking.blog.jp/archives/27813875.html", video:"https://youtu.be/1tAKldXGnpw", excerpt:"湖西連峰から少しはずれた豊橋市の石巻山へ、石巻山は低山なので軽視していたが、見どころが色々とあり", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/a/d/ad1dbb14.jpg"] },
+  { id:36, date:"2025-07-13", name:"大滝渓谷", lat:35.06780078499569, lng:137.24293557790935, region:"愛知県豊田市", difficulty:null, members:"堀越、堀、長谷川", blog:"https://81trekking.blog.jp/archives/28089718.html", video:"https://youtu.be/x-k1_RlUsf4", excerpt:"梟ヶ城址展望台を目指して木陰の登山道を行くが、風が全くなく、湿度あり、汗が噴き出してくる", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/a/a/aa8b7e3e.jpg"] },
+  { id:37, date:"2025-09-15", name:"本宮山（小國神社）", lat:34.88911697774007, lng:137.91004278508163, region:"静岡県森町", difficulty:null, members:"堀越、業天、斎藤、堀、長谷川", blog:"https://81trekking.blog.jp/archives/28480645.html", video:"https://youtu.be/C56CPowtIFk", excerpt:"小國神社の奥社がある遠州本宮山へ。前日の雨はあがったが、蒸し暑かった。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/7/6/76ab0449.jpg"] },
+  { id:38, date:"2025-10-29", name:"観音山", lat:34.90196144885735, lng:137.74485090480744, region:"静岡県浜松市", difficulty:null, members:"堀越、堀、長谷川", blog:"https://81trekking.blog.jp/archives/28765075.html", video:"https://youtu.be/ZWnoOesUPB8", excerpt:"浜松市の観音山はお気に入りの山で堀越は5回目、今年の2月以来。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/8/d/8d290d1c-s.jpg"] },
+  { id:39, date:"2025-11-17", name:"雨ヶ岳", lat:35.434378144846306, lng:138.55885356441172, region:"山梨県南巨摩郡身延町", difficulty:null, members:"堀越、業天、長谷川", blog:"https://81trekking.blog.jp/archives/28878478.html", video:"https://www.youtube.com/watch?v=34gQgxzGgdA", excerpt:"本栖湖畔にある雨ヶ岳、富士山の眺望がすばらしいとのことで、以前から登りたいと思っていた。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/8/5/85fc8f8c-s.jpg"] },
+  { id:40, date:"2026-01-11", name:"高草山", lat:34.906451547603396, lng:138.3167521588823, region:"静岡県藤枝市", difficulty:null, members:"堀越、赤星、堀、斎藤眞介、長谷川、鶴見", blog:"https://81trekking.blog.jp/archives/29289039.html", video:"https://youtu.be/wtJPdVusVwI", excerpt:"風で体が吹き飛ばれそうな強風のなか、焼津の高草山に登った。林叟院の駐車場に駐めBコースを", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/7/c/7c33e1e2.jpg"] },
+  { id:41, date:"2026-02-22", name:"岩古谷山", lat:35.0883775074216, lng:137.60100251492284, region:"愛知県設楽町", difficulty:null, members:"堀越、鶴見、業天、長谷川", blog:"https://81trekking.blog.jp/archives/29566615.html", video:"https://youtu.be/vngvu-t5-d8", excerpt:"反時計回りの周回のルートをとる。夜からは雨予報なのに時々暖かい日差しが射す。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/d/8/d862674b.jpg"] },
+  { id:42, date:"2026-03-22", name:"金丸山大丸山", lat:35.14983355513964, lng:138.59612213396105, region:"静岡県富士市", difficulty:null, members:"堀越、鶴見、業天、長谷川", blog:"https://81trekking.blog.jp/archives/29733614.html", video:"https://youtu.be/xNAcyE4wPQU", excerpt:"富士山が見えたので予定を変更して蒲原三山を反時計回りに縦走。蒲原駅に車をとめ", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/6/0/60a75438.jpg"] },
+  { id:43, date:"2026-04-12", name:"藤枝びく石", lat:34.9610020892629, lng:138.224817371828, region:"静岡県藤枝市", difficulty:null, members:"堀越、業天、鶴見、堀、長谷川", blog:"https://81trekking.blog.jp/archives/29850843.html", video:"https://youtu.be/vGZqP7OocLs", excerpt:"不動の滝を見て、笹川登山口⇒びく石山頂⇒笹川峠⇒笹川集落と反時計回りに周回した。", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/5/7/5777c73c.jpg"] },
+];
+
+const STORAGE_KEY = "trekking81-data";
+const FAVORITES_KEY = "trekking81-favs";
+const EXTRA_PHOTOS_KEY = "trekking81-extra-photos"; // locally added photos per trek
+const LOCAL_TREKS_KEY = "trekking81-local-treks";   // locally added treks (not in sheet)
+const DATA_VERSION_KEY = "trekking81-data-version";
+
+// ─── Data version: changes when INITIAL_DATA is updated by Claude ───
+const INITIAL_DATA_VERSION = "v" + INITIAL_DATA.length + "-" + (INITIAL_DATA[INITIAL_DATA.length - 1]?.id || 0) + "-" + (INITIAL_DATA.reduce((s, t) => s + (t.difficulty || 0), 0));
+
+// ─── Helpers ───
+const getSeason = (dateStr) => {
+  const m = new Date(dateStr).getMonth() + 1;
+  if (m >= 3 && m <= 5) return "春";
+  if (m >= 6 && m <= 8) return "夏";
+  if (m >= 9 && m <= 11) return "秋";
+  return "冬";
+};
+const getSeasonEmoji = (s) => ({ "春": "🌸", "夏": "☀️", "秋": "🍁", "冬": "❄️" }[s] || "");
+const getDiffLabel = (d) => {
+  if (!d) return "未設定";
+  if (d <= 30) return "初級";
+  if (d <= 38) return "中級";
+  if (d <= 45) return "上級";
+  return "健脚";
+};
+const getDiffColor = (d) => {
+  if (!d) return "#94a3b8";
+  if (d <= 30) return "#22c55e";
+  if (d <= 38) return "#eab308";
+  if (d <= 45) return "#f97316";
+  return "#ef4444";
+};
+const formatDate = (d) => {
+  const dt = new Date(d);
+  return `${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日`;
+};
+const getPrefecture = (region) => {
+  const m = region.match(/(愛知|静岡|山梨|長野|三重)/);
+  if (m) return m[1] + "県";
+  if (region.includes("浜松") || region.includes("湖西")) return "静岡県";
+  return "その他";
+};
+
+const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect fill='%23374739' width='400' height='300'/%3E%3Cpath d='M100 250 L200 100 L300 250Z' fill='%234a6b4a' opacity='0.6'/%3E%3Cpath d='M50 250 L150 150 L250 250Z' fill='%23567856' opacity='0.5'/%3E%3Ctext x='200' y='270' text-anchor='middle' fill='%239cb89c' font-size='14'%3ENo Photo%3C/text%3E%3C/svg%3E";
+
+// ─── Components ───
+
+function DifficultyBadge({ difficulty }) {
+  const color = getDiffColor(difficulty);
+  const label = getDiffLabel(difficulty);
+  return (
+    <span style={{
+      display:"inline-flex", alignItems:"center", gap:4,
+      padding:"3px 10px", borderRadius:20,
+      background: color + "22", color: color,
+      fontSize:12, fontWeight:700, border:`1.5px solid ${color}44`,
+      backdropFilter:"blur(4px)", letterSpacing:0.5,
+    }}>
+      {difficulty ? `Lv.${difficulty}` : ""} {label}
+    </span>
+  );
+}
+
+function SeasonBadge({ date }) {
+  const s = getSeason(date);
+  return (
+    <span style={{
+      display:"inline-flex", alignItems:"center", gap:3,
+      padding:"3px 10px", borderRadius:20,
+      background:"rgba(255,255,255,0.15)", color:"#fff",
+      fontSize:12, fontWeight:600, backdropFilter:"blur(4px)",
+    }}>
+      {getSeasonEmoji(s)} {s}
+    </span>
+  );
+}
+
+// ─── Card ───
+function TrekCard({ trek, isFav, onToggleFav, onClick }) {
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const imgSrc = trek.photos && trek.photos.length > 0 ? trek.photos[0] : PLACEHOLDER_IMG;
+  const photoCount = trek.photos ? trek.photos.length : 0;
+
+  return (
+    <div onClick={onClick} style={{
+      position:"relative", borderRadius:16, overflow:"hidden",
+      cursor:"pointer", aspectRatio:"4/3",
+      boxShadow:"0 4px 24px rgba(0,0,0,0.12)",
+      transition:"all 0.35s cubic-bezier(0.4,0,0.2,1)",
+      background:"#1a2e1a",
+    }}
+    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-6px) scale(1.02)"; e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.25)"; }}
+    onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.12)"; }}
+    >
+      <img
+        src={imgSrc}
+        alt={trek.name}
+        loading="lazy"
+        onLoad={() => setImgLoaded(true)}
+        onError={e => { e.target.src = PLACEHOLDER_IMG; setImgLoaded(true); }}
+        style={{
+          width:"100%", height:"100%", objectFit:"cover",
+          opacity: imgLoaded ? 1 : 0, transition:"opacity 0.5s",
+        }}
+      />
+      {/* Gradient overlay */}
+      <div style={{
+        position:"absolute", inset:0,
+        background:"linear-gradient(0deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.2) 100%)",
+      }} />
+      {/* Top badges */}
+      <div style={{ position:"absolute", top:12, left:12, right:12, display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+          <SeasonBadge date={trek.date} />
+          <DifficultyBadge difficulty={trek.difficulty} />
+        </div>
+        <button
+          onClick={e => { e.stopPropagation(); onToggleFav(trek.id); }}
+          style={{
+            background:"rgba(0,0,0,0.3)", border:"none", borderRadius:"50%",
+            width:36, height:36, display:"flex", alignItems:"center", justifyContent:"center",
+            cursor:"pointer", backdropFilter:"blur(4px)", fontSize:18,
+            transition:"transform 0.2s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.transform = "scale(1.2)"}
+          onMouseLeave={e => e.currentTarget.style.transform = ""}
+        >
+          {isFav ? "❤️" : "🤍"}
+        </button>
+      </div>
+      {/* Photo count badge */}
+      {photoCount > 1 && (
+        <div style={{
+          position:"absolute", top:12, right:56,
+          background:"rgba(0,0,0,0.5)", color:"#fff",
+          padding:"3px 8px", borderRadius:12, fontSize:11, fontWeight:600,
+          backdropFilter:"blur(4px)",
+        }}>
+          📷 {photoCount}
+        </div>
+      )}
+      {/* Bottom info */}
+      <div style={{ position:"absolute", bottom:0, left:0, right:0, padding:"16px 16px 14px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+          <span style={{ color:"rgba(255,255,255,0.7)", fontSize:12, fontWeight:500 }}>
+            #{trek.id} · {formatDate(trek.date)}
+          </span>
+          {trek.video && <span style={{ fontSize:11, background:"#ef444466", color:"#fff", padding:"1px 6px", borderRadius:8 }}>▶ 動画</span>}
+        </div>
+        <h3 style={{ margin:0, color:"#fff", fontSize:19, fontWeight:800, lineHeight:1.3, letterSpacing:0.5,
+          textShadow:"0 2px 8px rgba(0,0,0,0.5)",
+        }}>
+          {trek.name}
+        </h3>
+        <p style={{ margin:"4px 0 0", color:"rgba(255,255,255,0.7)", fontSize:12, fontWeight:500 }}>
+          📍 {trek.region}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Detail Modal ───
+function DetailModal({ trek, onClose, allTreks }) {
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const photos = trek.photos && trek.photos.length > 0 ? trek.photos : [PLACEHOLDER_IMG];
+  const season = getSeason(trek.date);
+
+  // Similar treks
+  const similar = useMemo(() => {
+    const pref = getPrefecture(trek.region);
+    return allTreks
+      .filter(t => t.id !== trek.id && (getPrefecture(t.region) === pref || (trek.difficulty && t.difficulty && Math.abs(t.difficulty - trek.difficulty) <= 5)))
+      .slice(0, 4);
+  }, [trek, allTreks]);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    const handleKey = (e) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") setPhotoIdx(i => Math.min(i + 1, photos.length - 1));
+      if (e.key === "ArrowLeft") setPhotoIdx(i => Math.max(i - 1, 0));
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => { document.body.style.overflow = ""; window.removeEventListener("keydown", handleKey); };
+  }, [photos.length]);
+
+  return (
+    <div style={{
+      position:"fixed", inset:0, zIndex:1000,
+      background:"rgba(0,0,0,0.8)", backdropFilter:"blur(8px)",
+      display:"flex", justifyContent:"center", alignItems:"flex-start",
+      overflowY:"auto", padding:"40px 16px",
+    }} onClick={onClose}>
+      <div style={{
+        background:"#f5f0e8", borderRadius:20, maxWidth:700, width:"100%",
+        overflow:"hidden", position:"relative",
+        boxShadow:"0 24px 80px rgba(0,0,0,0.4)",
+      }} onClick={e => e.stopPropagation()}>
+        {/* Close btn */}
+        <button onClick={onClose} style={{
+          position:"absolute", top:16, right:16, zIndex:10,
+          background:"rgba(0,0,0,0.5)", color:"#fff", border:"none",
+          borderRadius:"50%", width:40, height:40, fontSize:20, cursor:"pointer",
+          backdropFilter:"blur(4px)", display:"flex", alignItems:"center", justifyContent:"center",
+        }}>✕</button>
+
+        {/* Photo gallery */}
+        <div style={{ position:"relative", aspectRatio:"16/10", background:"#1a2e1a" }}>
+          <img
+            src={photos[photoIdx]}
+            alt={trek.name}
+            onError={e => { e.target.src = PLACEHOLDER_IMG; }}
+            style={{ width:"100%", height:"100%", objectFit:"cover" }}
+          />
+          {photos.length > 1 && (
+            <>
+              <button onClick={() => setPhotoIdx(i => Math.max(0, i-1))} disabled={photoIdx === 0}
+                style={{
+                  position:"absolute", left:12, top:"50%", transform:"translateY(-50%)",
+                  background:"rgba(0,0,0,0.5)", color:"#fff", border:"none",
+                  borderRadius:"50%", width:40, height:40, fontSize:20, cursor:"pointer",
+                  opacity: photoIdx === 0 ? 0.3 : 1,
+                }}>◀</button>
+              <button onClick={() => setPhotoIdx(i => Math.min(photos.length-1, i+1))} disabled={photoIdx === photos.length-1}
+                style={{
+                  position:"absolute", right:12, top:"50%", transform:"translateY(-50%)",
+                  background:"rgba(0,0,0,0.5)", color:"#fff", border:"none",
+                  borderRadius:"50%", width:40, height:40, fontSize:20, cursor:"pointer",
+                  opacity: photoIdx === photos.length-1 ? 0.3 : 1,
+                }}>▶</button>
+              <div style={{
+                position:"absolute", bottom:12, left:"50%", transform:"translateX(-50%)",
+                display:"flex", gap:6,
+              }}>
+                {photos.map((_, i) => (
+                  <button key={i} onClick={() => setPhotoIdx(i)} style={{
+                    width:10, height:10, borderRadius:"50%", border:"2px solid #fff",
+                    background: i === photoIdx ? "#fff" : "transparent", cursor:"pointer", padding:0,
+                  }} />
+                ))}
+              </div>
+            </>
+          )}
+          {/* Photo count */}
+          <div style={{
+            position:"absolute", top:16, left:16,
+            background:"rgba(0,0,0,0.5)", color:"#fff",
+            padding:"4px 12px", borderRadius:12, fontSize:13, fontWeight:600,
+          }}>
+            📷 {photoIdx + 1} / {photos.length}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding:"28px 28px 24px" }}>
+          {/* Title area */}
+          <div style={{ display:"flex", alignItems:"flex-start", gap:12, marginBottom:16 }}>
+            <div style={{
+              background:"#2d5a27", color:"#fff", borderRadius:12,
+              width:48, height:48, display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:22, fontWeight:900, flexShrink:0,
+            }}>
+              {trek.id}
+            </div>
+            <div>
+              <h2 style={{ margin:0, fontSize:26, fontWeight:900, color:"#1a2e1a", lineHeight:1.2 }}>
+                {trek.name}
+              </h2>
+              <p style={{ margin:"4px 0 0", color:"#5a6b5a", fontSize:14, fontWeight:500 }}>
+                {formatDate(trek.date)} · 📍 {trek.region}
+              </p>
+            </div>
+          </div>
+
+          {/* Tags row */}
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:20 }}>
+            <span style={{ padding:"4px 12px", borderRadius:20, background:"#e8f0e4", color:"#2d5a27", fontSize:13, fontWeight:600 }}>
+              {getSeasonEmoji(season)} {season}の山
+            </span>
+            <DifficultyBadge difficulty={trek.difficulty} />
+            {trek.video && (
+              <span style={{ padding:"4px 12px", borderRadius:20, background:"#fee2e2", color:"#dc2626", fontSize:13, fontWeight:600 }}>
+                ▶ 動画あり
+              </span>
+            )}
+          </div>
+
+          {/* Excerpt */}
+          <div style={{
+            background:"#fff", borderRadius:12, padding:20, marginBottom:20,
+            borderLeft:"4px solid #2d5a27",
+          }}>
+            <p style={{ margin:0, fontSize:15, lineHeight:1.8, color:"#374739" }}>
+              {trek.excerpt}
+            </p>
+          </div>
+
+          {/* Members */}
+          <div style={{ marginBottom:20 }}>
+            <h4 style={{ margin:"0 0 8px", fontSize:14, color:"#5a6b5a", fontWeight:700 }}>🥾 参加メンバー</h4>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+              {trek.members.split(/[、,]/).map((m, i) => (
+                <span key={i} style={{
+                  padding:"4px 12px", borderRadius:20, background:"#e8f0e4",
+                  color:"#2d5a27", fontSize:13, fontWeight:600,
+                }}>{m.trim()}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* Map */}
+          <div style={{ marginBottom:20, borderRadius:12, overflow:"hidden", border:"2px solid #d4dcd0" }}>
+            <iframe
+              title="map"
+              width="100%" height="220" style={{ border:0 }}
+              loading="lazy"
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${trek.lng-0.03},${trek.lat-0.02},${trek.lng+0.03},${trek.lat+0.02}&layer=mapnik&marker=${trek.lat},${trek.lng}`}
+            />
+          </div>
+
+          {/* Links */}
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:24 }}>
+            <a href={trek.blog} target="_blank" rel="noopener noreferrer"
+              style={{
+                flex:1, minWidth:140, padding:"12px 16px", borderRadius:12,
+                background:"#2d5a27", color:"#fff", textDecoration:"none",
+                textAlign:"center", fontWeight:700, fontSize:14,
+                transition:"background 0.2s",
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "#1f4a1a"}
+              onMouseLeave={e => e.currentTarget.style.background = "#2d5a27"}
+            >
+              📝 ブログを読む
+            </a>
+            {trek.video && (
+              <a href={trek.video} target="_blank" rel="noopener noreferrer"
+                style={{
+                  flex:1, minWidth:140, padding:"12px 16px", borderRadius:12,
+                  background:"#dc2626", color:"#fff", textDecoration:"none",
+                  textAlign:"center", fontWeight:700, fontSize:14,
+                  transition:"background 0.2s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = "#b91c1c"}
+                onMouseLeave={e => e.currentTarget.style.background = "#dc2626"}
+              >
+                ▶ 動画を見る
+              </a>
+            )}
+          </div>
+
+          {/* Similar treks */}
+          {similar.length > 0 && (
+            <div>
+              <h4 style={{ margin:"0 0 12px", fontSize:14, color:"#5a6b5a", fontWeight:700 }}>🏔️ 似た山・近くの山</h4>
+              <div style={{ display:"flex", gap:8, overflowX:"auto", paddingBottom:4 }}>
+                {similar.map(s => (
+                  <div key={s.id} style={{
+                    flexShrink:0, width:140, borderRadius:12, overflow:"hidden",
+                    background:"#fff", boxShadow:"0 2px 8px rgba(0,0,0,0.08)",
+                  }}>
+                    <img src={s.photos?.[0] || PLACEHOLDER_IMG} alt={s.name}
+                      onError={e => { e.target.src = PLACEHOLDER_IMG; }}
+                      style={{ width:"100%", height:90, objectFit:"cover" }} />
+                    <div style={{ padding:8 }}>
+                      <p style={{ margin:0, fontSize:13, fontWeight:700, color:"#1a2e1a" }}>{s.name}</p>
+                      <p style={{ margin:"2px 0 0", fontSize:11, color:"#5a6b5a" }}>{s.region}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Admin Panel ───
+function AdminPanel({ treks, onAddTrek, onAddPhoto, onExport, onImport, onClose }) {
+  const [mode, setMode] = useState("menu"); // menu, add, photo, export
+  const [form, setForm] = useState({ name:"", date:"", lat:"", lng:"", region:"", difficulty:"", members:"", blog:"", video:"", excerpt:"", photoUrl:"" });
+  const [photoForm, setPhotoForm] = useState({ trekId:"", url:"" });
+  const [importText, setImportText] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const handleAddTrek = () => {
+    if (!form.name || !form.date) { setMsg("山名と日付は必須です"); return; }
+    const newTrek = {
+      id: Math.max(...treks.map(t => t.id)) + 1,
+      name: form.name, date: form.date,
+      lat: parseFloat(form.lat) || 0, lng: parseFloat(form.lng) || 0,
+      region: form.region, difficulty: form.difficulty ? parseInt(form.difficulty) : null,
+      members: form.members, blog: form.blog, video: form.video,
+      excerpt: form.excerpt,
+      photos: form.photoUrl ? [form.photoUrl] : [],
+    };
+    onAddTrek(newTrek);
+    setMsg(`「${form.name}」を追加しました！`);
+    setForm({ name:"", date:"", lat:"", lng:"", region:"", difficulty:"", members:"", blog:"", video:"", excerpt:"", photoUrl:"" });
+  };
+
+  const handleAddPhoto = () => {
+    if (!photoForm.trekId || !photoForm.url) { setMsg("山の選択とURLは必須です"); return; }
+    onAddPhoto(parseInt(photoForm.trekId), photoForm.url);
+    const t = treks.find(t => t.id === parseInt(photoForm.trekId));
+    setMsg(`「${t?.name}」に写真を追加しました！`);
+    setPhotoForm({ trekId:"", url:"" });
+  };
+
+  const handleImport = () => {
+    try {
+      const data = JSON.parse(importText);
+      onImport(data);
+      setMsg(`${data.length}件のデータをインポートしました`);
+      setImportText("");
+    } catch { setMsg("JSONの形式が正しくありません"); }
+  };
+
+  const inputStyle = {
+    width:"100%", padding:"10px 14px", borderRadius:10, border:"2px solid #d4dcd0",
+    fontSize:14, background:"#fff", outline:"none", boxSizing:"border-box",
+    fontFamily:"inherit",
+  };
+  const labelStyle = { display:"block", marginBottom:4, fontSize:13, fontWeight:700, color:"#374739" };
+
+  return (
+    <div style={{
+      position:"fixed", inset:0, zIndex:1100,
+      background:"rgba(0,0,0,0.7)", backdropFilter:"blur(6px)",
+      display:"flex", justifyContent:"center", alignItems:"flex-start",
+      overflowY:"auto", padding:"40px 16px",
+    }} onClick={onClose}>
+      <div style={{
+        background:"#f5f0e8", borderRadius:20, maxWidth:560, width:"100%",
+        overflow:"hidden", boxShadow:"0 24px 80px rgba(0,0,0,0.4)",
+      }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ padding:"24px 24px 0", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <h2 style={{ margin:0, fontSize:22, fontWeight:900, color:"#1a2e1a" }}>⚙️ 管理モード</h2>
+          <button onClick={onClose} style={{
+            background:"#e8f0e4", border:"none", borderRadius:"50%",
+            width:36, height:36, fontSize:16, cursor:"pointer", color:"#374739",
+          }}>✕</button>
+        </div>
+
+        <div style={{ padding:24 }}>
+          {msg && (
+            <div style={{
+              padding:"10px 16px", borderRadius:10, background:"#dcfce7",
+              color:"#166534", fontSize:14, fontWeight:600, marginBottom:16,
+            }}>{msg}</div>
+          )}
+
+          {mode === "menu" && (
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <button onClick={() => { setMode("add"); setMsg(""); }} style={{
+                padding:"16px 20px", borderRadius:14, border:"2px solid #d4dcd0",
+                background:"#fff", cursor:"pointer", textAlign:"left", fontSize:15, fontWeight:700, color:"#1a2e1a",
+              }}>🏔️ 新しい山を追加</button>
+              <button onClick={() => { setMode("photo"); setMsg(""); }} style={{
+                padding:"16px 20px", borderRadius:14, border:"2px solid #d4dcd0",
+                background:"#fff", cursor:"pointer", textAlign:"left", fontSize:15, fontWeight:700, color:"#1a2e1a",
+              }}>📷 写真を追加</button>
+              <button onClick={() => { setMode("export"); setMsg(""); }} style={{
+                padding:"16px 20px", borderRadius:14, border:"2px solid #d4dcd0",
+                background:"#fff", cursor:"pointer", textAlign:"left", fontSize:15, fontWeight:700, color:"#1a2e1a",
+              }}>📁 データ書き出し・読み込み</button>
+            </div>
+          )}
+
+          {mode === "add" && (
+            <div>
+              <button onClick={() => setMode("menu")} style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#5a6b5a", marginBottom:16, padding:0 }}>← メニューに戻る</button>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                <div style={{ gridColumn:"1/-1" }}><label style={labelStyle}>山名 *</label><input style={inputStyle} value={form.name} onChange={e => setForm({...form, name:e.target.value})} placeholder="例: 富士山" /></div>
+                <div><label style={labelStyle}>登頂日 *</label><input type="date" style={inputStyle} value={form.date} onChange={e => setForm({...form, date:e.target.value})} /></div>
+                <div><label style={labelStyle}>難易度</label><input type="number" style={inputStyle} value={form.difficulty} onChange={e => setForm({...form, difficulty:e.target.value})} placeholder="例: 35" /></div>
+                <div><label style={labelStyle}>緯度</label><input style={inputStyle} value={form.lat} onChange={e => setForm({...form, lat:e.target.value})} placeholder="例: 35.360" /></div>
+                <div><label style={labelStyle}>経度</label><input style={inputStyle} value={form.lng} onChange={e => setForm({...form, lng:e.target.value})} placeholder="例: 138.731" /></div>
+                <div style={{ gridColumn:"1/-1" }}><label style={labelStyle}>地域</label><input style={inputStyle} value={form.region} onChange={e => setForm({...form, region:e.target.value})} placeholder="例: 静岡県富士宮市" /></div>
+                <div style={{ gridColumn:"1/-1" }}><label style={labelStyle}>参加メンバー</label><input style={inputStyle} value={form.members} onChange={e => setForm({...form, members:e.target.value})} placeholder="例: 堀越、鶴見、長谷川" /></div>
+                <div style={{ gridColumn:"1/-1" }}><label style={labelStyle}>ブログURL</label><input style={inputStyle} value={form.blog} onChange={e => setForm({...form, blog:e.target.value})} /></div>
+                <div style={{ gridColumn:"1/-1" }}><label style={labelStyle}>動画URL</label><input style={inputStyle} value={form.video} onChange={e => setForm({...form, video:e.target.value})} /></div>
+                <div style={{ gridColumn:"1/-1" }}><label style={labelStyle}>代表写真URL</label><input style={inputStyle} value={form.photoUrl} onChange={e => setForm({...form, photoUrl:e.target.value})} /></div>
+                <div style={{ gridColumn:"1/-1" }}><label style={labelStyle}>ブログ書き出し</label><textarea style={{...inputStyle, minHeight:80, resize:"vertical"}} value={form.excerpt} onChange={e => setForm({...form, excerpt:e.target.value})} /></div>
+              </div>
+              <button onClick={handleAddTrek} style={{
+                marginTop:16, width:"100%", padding:"14px", borderRadius:12,
+                background:"#2d5a27", color:"#fff", border:"none",
+                fontSize:16, fontWeight:700, cursor:"pointer",
+              }}>追加する</button>
+            </div>
+          )}
+
+          {mode === "photo" && (
+            <div>
+              <button onClick={() => setMode("menu")} style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#5a6b5a", marginBottom:16, padding:0 }}>← メニューに戻る</button>
+              <div style={{ marginBottom:12 }}>
+                <label style={labelStyle}>山を選択</label>
+                <select style={inputStyle} value={photoForm.trekId} onChange={e => setPhotoForm({...photoForm, trekId:e.target.value})}>
+                  <option value="">選択してください</option>
+                  {treks.map(t => <option key={t.id} value={t.id}>#{t.id} {t.name} ({formatDate(t.date)})</option>)}
+                </select>
+              </div>
+              <div style={{ marginBottom:12 }}>
+                <label style={labelStyle}>写真URL</label>
+                <input style={inputStyle} value={photoForm.url} onChange={e => setPhotoForm({...photoForm, url:e.target.value})} placeholder="https://..." />
+              </div>
+              {photoForm.url && (
+                <div style={{ marginBottom:12, borderRadius:10, overflow:"hidden", border:"2px solid #d4dcd0" }}>
+                  <img src={photoForm.url} alt="preview" style={{ width:"100%", height:160, objectFit:"cover" }} onError={e => e.target.style.display="none"} />
+                </div>
+              )}
+              <button onClick={handleAddPhoto} style={{
+                width:"100%", padding:"14px", borderRadius:12,
+                background:"#2d5a27", color:"#fff", border:"none",
+                fontSize:16, fontWeight:700, cursor:"pointer",
+              }}>写真を追加</button>
+            </div>
+          )}
+
+          {mode === "export" && (
+            <div>
+              <button onClick={() => setMode("menu")} style={{ background:"none", border:"none", cursor:"pointer", fontSize:14, color:"#5a6b5a", marginBottom:16, padding:0 }}>← メニューに戻る</button>
+              <button onClick={() => {
+                const json = JSON.stringify(treks, null, 2);
+                const blob = new Blob([json], { type:"application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a"); a.href = url; a.download = "81trekking-data.json"; a.click();
+                URL.revokeObjectURL(url);
+                setMsg("JSONファイルをダウンロードしました");
+              }} style={{
+                width:"100%", padding:"14px", borderRadius:12, marginBottom:16,
+                background:"#2d5a27", color:"#fff", border:"none",
+                fontSize:16, fontWeight:700, cursor:"pointer",
+              }}>📥 JSONエクスポート</button>
+              <div>
+                <label style={labelStyle}>JSONインポート（貼り付け）</label>
+                <textarea style={{...inputStyle, minHeight:120, resize:"vertical", fontFamily:"monospace", fontSize:12}} value={importText} onChange={e => setImportText(e.target.value)} placeholder='[{"id":1, "name":"...", ...}]' />
+                <button onClick={handleImport} style={{
+                  marginTop:8, width:"100%", padding:"14px", borderRadius:12,
+                  background:"#374739", color:"#fff", border:"none",
+                  fontSize:16, fontWeight:700, cursor:"pointer",
+                }}>📤 インポート実行</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Map View (Leaflet) ───
+function MapView({ treks, onSelectTrek }) {
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const [hoveredTrek, setHoveredTrek] = useState(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (mapInstanceRef.current) return; // already initialized
+
+    // Load Leaflet CSS
+    if (!document.getElementById("leaflet-css")) {
+      const link = document.createElement("link");
+      link.id = "leaflet-css";
+      link.rel = "stylesheet";
+      link.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
+      document.head.appendChild(link);
+    }
+
+    // Load Leaflet JS
+    const loadLeaflet = () => {
+      return new Promise((resolve) => {
+        if (window.L) { resolve(window.L); return; }
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+        script.onload = () => resolve(window.L);
+        document.head.appendChild(script);
+      });
+    };
+
+    loadLeaflet().then((L) => {
+      if (!mapRef.current || mapInstanceRef.current) return;
+
+      const map = L.map(mapRef.current, {
+        center: [35.1, 137.9],
+        zoom: 9,
+        zoomControl: true,
+        scrollWheelZoom: true,
+      });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 18,
+      }).addTo(map);
+
+      // Custom icon
+      const createIcon = (difficulty) => {
+        const color = difficulty ? (
+          difficulty <= 30 ? "#22c55e" :
+          difficulty <= 38 ? "#eab308" :
+          difficulty <= 45 ? "#f97316" : "#ef4444"
+        ) : "#94a3b8";
+
+        return L.divIcon({
+          className: "",
+          html: `<div style="
+            width:28px; height:28px; border-radius:50%; 
+            background:${color}; border:3px solid #fff;
+            box-shadow:0 2px 8px rgba(0,0,0,0.3);
+            display:flex; align-items:center; justify-content:center;
+            font-size:11px; font-weight:800; color:#fff;
+            cursor:pointer; transition:transform 0.2s;
+          " onmouseover="this.style.transform='scale(1.4)'" onmouseout="this.style.transform='scale(1)'"
+          >${difficulty || "?"}</div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        });
+      };
+
+      treks.forEach((trek) => {
+        if (!trek.lat || !trek.lng) return;
+        const marker = L.marker([trek.lat, trek.lng], {
+          icon: createIcon(trek.difficulty),
+        }).addTo(map);
+
+        // Popup with photo and link
+        const photoHtml = trek.photos && trek.photos.length > 0
+          ? `<img src="${trek.photos[0]}" style="width:100%;height:100px;object-fit:cover;border-radius:8px 8px 0 0;display:block;" onerror="this.style.display='none'" />`
+          : "";
+
+        const diffLabel = trek.difficulty
+          ? `<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:${getDiffColor(trek.difficulty)}22;color:${getDiffColor(trek.difficulty)};font-size:11px;font-weight:700;">Lv.${trek.difficulty}</span>`
+          : "";
+
+        const videoIcon = trek.video ? `<span style="font-size:11px;color:#dc2626;margin-left:4px;">▶動画</span>` : "";
+
+        const popupContent = `
+          <div style="width:220px;font-family:'Noto Sans JP',sans-serif;margin:-14px -20px -14px -20px;">
+            ${photoHtml}
+            <div style="padding:10px 14px 12px;">
+              <div style="font-size:15px;font-weight:800;color:#1a2e1a;margin-bottom:4px;">${trek.name}</div>
+              <div style="font-size:12px;color:#5a6b5a;margin-bottom:6px;">📍 ${trek.region} · ${formatDate(trek.date)}</div>
+              <div style="margin-bottom:8px;">${diffLabel}${videoIcon}</div>
+              <div style="font-size:12px;color:#374739;line-height:1.5;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${trek.excerpt}</div>
+              <button id="detail-btn-${trek.id}" style="
+                width:100%;padding:8px 12px;border-radius:8px;
+                background:#2d5a27;color:#fff;border:none;
+                font-size:13px;font-weight:700;cursor:pointer;
+                font-family:'Noto Sans JP',sans-serif;
+              ">詳細を見る →</button>
+            </div>
+          </div>
+        `;
+
+        marker.bindPopup(popupContent, {
+          maxWidth: 260,
+          minWidth: 220,
+          closeButton: true,
+          className: "trek-popup",
+        });
+
+        marker.on("popupopen", () => {
+          setTimeout(() => {
+            const btn = document.getElementById(`detail-btn-${trek.id}`);
+            if (btn) {
+              btn.onclick = (e) => {
+                e.stopPropagation();
+                map.closePopup();
+                onSelectTrek(trek);
+              };
+            }
+          }, 50);
+        });
+      });
+
+      mapInstanceRef.current = map;
+
+      // Force resize after render
+      setTimeout(() => map.invalidateSize(), 200);
+    });
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [treks, onSelectTrek]);
+
+  return (
+    <div style={{ maxWidth:1200, margin:"0 auto", padding:"8px 20px 60px" }}>
+      <div style={{
+        borderRadius:16, overflow:"hidden",
+        border:"2px solid rgba(255,255,255,0.1)",
+        boxShadow:"0 8px 32px rgba(0,0,0,0.3)",
+      }}>
+        <div ref={mapRef} style={{ width:"100%", height:"70vh", minHeight:500 }} />
+      </div>
+      {/* Legend */}
+      <div style={{
+        display:"flex", gap:16, justifyContent:"center", marginTop:16,
+        flexWrap:"wrap",
+      }}>
+        {[
+          { color:"#22c55e", label:"初級 (〜30)" },
+          { color:"#eab308", label:"中級 (31〜38)" },
+          { color:"#f97316", label:"上級 (39〜45)" },
+          { color:"#ef4444", label:"健脚 (46〜)" },
+          { color:"#94a3b8", label:"未設定" },
+        ].map(({ color, label }) => (
+          <div key={label} style={{ display:"flex", alignItems:"center", gap:6 }}>
+            <div style={{
+              width:16, height:16, borderRadius:"50%",
+              background:color, border:"2px solid rgba(255,255,255,0.3)",
+            }} />
+            <span style={{ fontSize:12, color:"rgba(255,255,255,0.6)", fontWeight:600 }}>{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Stats Header ───
+function StatsBar({ treks }) {
+  const prefectures = new Set(treks.map(t => getPrefecture(t.region)));
+  const members = new Set(treks.flatMap(t => t.members.split(/[、,]/).map(m => m.trim())));
+  const withVideo = treks.filter(t => t.video).length;
+  const stats = [
+    { label:"登った山", value:treks.length, unit:"座" },
+    { label:"活動県", value:prefectures.size, unit:"県" },
+    { label:"仲間", value:members.size, unit:"人" },
+    { label:"動画", value:withVideo, unit:"本" },
+  ];
+  return (
+    <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap", marginBottom:8 }}>
+      {stats.map((s, i) => (
+        <div key={i} style={{
+          padding:"8px 16px", borderRadius:12, background:"rgba(255,255,255,0.08)",
+          textAlign:"center", minWidth:80, backdropFilter:"blur(4px)",
+        }}>
+          <div style={{ fontSize:26, fontWeight:900, color:"#8eca7a" }}>{s.value}</div>
+          <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", fontWeight:600 }}>{s.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main App ───
+function TrekkingApp() {
+  const [treks, setTreks] = useState([]);
+  const [favorites, setFavorites] = useState(new Set());
+  const [selectedTrek, setSelectedTrek] = useState(null);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Filters
+  const [seasonFilter, setSeasonFilter] = useState("all");
+  const [diffFilter, setDiffFilter] = useState("all");
+  const [prefFilter, setPrefFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("date-desc");
+  const [showFavsOnly, setShowFavsOnly] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [viewMode, setViewMode] = useState("cards"); // "cards" or "map"
+
+  // ─── Data Loading (version-aware: INITIAL_DATA updates trigger refresh) ───
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Check if INITIAL_DATA has been updated (e.g., by Claude re-syncing)
+        const storedVersion = await window.storage.get(DATA_VERSION_KEY);
+        const cachedData = await window.storage.get(STORAGE_KEY);
+
+        if (storedVersion && storedVersion.value === INITIAL_DATA_VERSION && cachedData && cachedData.value) {
+          // Cached data matches current version — use cache (includes local photos/treks)
+          setTreks(JSON.parse(cachedData.value));
+        } else {
+          // INITIAL_DATA was updated or first load — merge with locally added extras
+          let extraPhotos = {};
+          try {
+            const ep = await window.storage.get(EXTRA_PHOTOS_KEY);
+            if (ep && ep.value) extraPhotos = JSON.parse(ep.value);
+          } catch {}
+
+          let localTreks = [];
+          try {
+            const lt = await window.storage.get(LOCAL_TREKS_KEY);
+            if (lt && lt.value) localTreks = JSON.parse(lt.value);
+          } catch {}
+
+          // Merge extra photos into INITIAL_DATA
+          const merged = INITIAL_DATA.map(trek => {
+            const extras = extraPhotos[trek.id] || [];
+            return extras.length > 0 ? { ...trek, photos: [...trek.photos, ...extras] } : trek;
+          });
+
+          // Filter out local treks that now exist in sheet data
+          const sheetIds = new Set(INITIAL_DATA.map(t => t.id));
+          const filteredLocal = localTreks.filter(t => !sheetIds.has(t.id));
+
+          const all = [...merged, ...filteredLocal];
+          setTreks(all);
+          await window.storage.set(STORAGE_KEY, JSON.stringify(all));
+          await window.storage.set(DATA_VERSION_KEY, INITIAL_DATA_VERSION);
+        }
+      } catch {
+        setTreks(INITIAL_DATA);
+      }
+
+      // Load favorites
+      try {
+        const favResult = await window.storage.get(FAVORITES_KEY);
+        if (favResult && favResult.value) setFavorites(new Set(JSON.parse(favResult.value)));
+      } catch {}
+      setLoading(false);
+    };
+    loadData();
+  }, []);
+
+  // ─── Data Operations ───
+  const saveData = useCallback(async (newTreks) => {
+    setTreks(newTreks);
+    try { await window.storage.set(STORAGE_KEY, JSON.stringify(newTreks)); } catch {}
+  }, []);
+
+  const saveFavs = useCallback(async (newFavs) => {
+    setFavorites(newFavs);
+    try { await window.storage.set(FAVORITES_KEY, JSON.stringify([...newFavs])); } catch {}
+  }, []);
+
+  const toggleFav = useCallback((id) => {
+    const newFavs = new Set(favorites);
+    if (newFavs.has(id)) newFavs.delete(id); else newFavs.add(id);
+    saveFavs(newFavs);
+  }, [favorites, saveFavs]);
+
+  // Add trek locally (saved separately so data refresh won't overwrite)
+  const addTrek = useCallback(async (trek) => {
+    const newTreks = [...treks, trek];
+    saveData(newTreks);
+    try {
+      const lt = await window.storage.get(LOCAL_TREKS_KEY);
+      const existing = lt && lt.value ? JSON.parse(lt.value) : [];
+      await window.storage.set(LOCAL_TREKS_KEY, JSON.stringify([...existing, trek]));
+    } catch {}
+  }, [treks, saveData]);
+
+  // Add photo (stored separately so data refresh preserves them)
+  const addPhoto = useCallback(async (trekId, url) => {
+    const newTreks = treks.map(t => t.id === trekId ? { ...t, photos: [...(t.photos || []), url] } : t);
+    saveData(newTreks);
+    try {
+      const ep = await window.storage.get(EXTRA_PHOTOS_KEY);
+      const existing = ep && ep.value ? JSON.parse(ep.value) : {};
+      existing[trekId] = [...(existing[trekId] || []), url];
+      await window.storage.set(EXTRA_PHOTOS_KEY, JSON.stringify(existing));
+    } catch {}
+  }, [treks, saveData]);
+
+  const importData = useCallback((data) => { saveData(data); }, [saveData]);
+  const exportData = useCallback(() => treks, [treks]);
+
+  // Get unique prefectures
+  const prefectures = useMemo(() => [...new Set(treks.map(t => getPrefecture(t.region)))].sort(), [treks]);
+
+  // Filtered & sorted
+  const filtered = useMemo(() => {
+    let result = [...treks];
+    if (seasonFilter !== "all") result = result.filter(t => getSeason(t.date) === seasonFilter);
+    if (diffFilter !== "all") {
+      if (diffFilter === "beginner") result = result.filter(t => t.difficulty && t.difficulty <= 30);
+      if (diffFilter === "mid") result = result.filter(t => t.difficulty && t.difficulty > 30 && t.difficulty <= 38);
+      if (diffFilter === "advanced") result = result.filter(t => t.difficulty && t.difficulty > 38 && t.difficulty <= 45);
+      if (diffFilter === "expert") result = result.filter(t => t.difficulty && t.difficulty > 45);
+      if (diffFilter === "none") result = result.filter(t => !t.difficulty);
+    }
+    if (prefFilter !== "all") result = result.filter(t => getPrefecture(t.region) === prefFilter);
+    if (showFavsOnly) result = result.filter(t => favorites.has(t.id));
+    if (searchText) {
+      const q = searchText.toLowerCase();
+      result = result.filter(t => t.name.toLowerCase().includes(q) || t.region.toLowerCase().includes(q) || t.excerpt.toLowerCase().includes(q) || t.members.toLowerCase().includes(q));
+    }
+    if (sortBy === "date-desc") result.sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (sortBy === "date-asc") result.sort((a, b) => new Date(a.date) - new Date(b.date));
+    if (sortBy === "diff-asc") result.sort((a, b) => (a.difficulty || 999) - (b.difficulty || 999));
+    if (sortBy === "diff-desc") result.sort((a, b) => (b.difficulty || 0) - (a.difficulty || 0));
+    if (sortBy === "name") result.sort((a, b) => a.name.localeCompare(b.name, "ja"));
+    return result;
+  }, [treks, seasonFilter, diffFilter, prefFilter, sortBy, showFavsOnly, favorites, searchText]);
+
+  const btnStyle = (active) => ({
+    padding:"7px 16px", borderRadius:24, border:"none",
+    background: active ? "#2d5a27" : "rgba(255,255,255,0.08)",
+    color: active ? "#fff" : "rgba(255,255,255,0.7)",
+    fontSize:13, fontWeight:600, cursor:"pointer",
+    transition:"all 0.2s", whiteSpace:"nowrap",
+  });
+
+  if (loading) {
+    return (
+      <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:"#1a2e1a", color:"#8eca7a", fontFamily:"'Noto Sans JP', sans-serif" }}>
+        <div style={{ textAlign:"center" }}>
+          <div style={{ fontSize:48, marginBottom:16 }}>🏔️</div>
+          <div style={{ fontSize:18, fontWeight:700 }}>読み込み中...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      minHeight:"100vh",
+      background:"linear-gradient(180deg, #0f1f0f 0%, #1a2e1a 30%, #1f331f 100%)",
+      fontFamily:"'Noto Sans JP', 'Hiragino Sans', sans-serif",
+    }}>
+
+      {/* Header */}
+      <header style={{
+        padding:"40px 20px 24px", textAlign:"center",
+        background:"linear-gradient(180deg, rgba(45,90,39,0.3) 0%, transparent 100%)",
+      }}>
+        <div style={{ fontSize:14, letterSpacing:6, color:"rgba(255,255,255,0.4)", fontWeight:600, marginBottom:8 }}>
+          YAMAHA TREKKING COLLECTION
+        </div>
+        <h1 style={{
+          margin:"0 0 8px", fontSize:36, fontWeight:900, color:"#fff",
+          letterSpacing:2, lineHeight:1.2,
+        }}>
+          ヤマハトレッキング図鑑
+        </h1>
+        <p style={{ margin:"0 0 20px", color:"rgba(255,255,255,0.5)", fontSize:14, fontWeight:500 }}>
+          東海エリアの山々を写真とともに
+        </p>
+        <StatsBar treks={treks} />
+        {/* View Toggle */}
+        <div style={{ display:"flex", gap:4, justifyContent:"center", marginTop:12 }}>
+          <button onClick={() => setViewMode("cards")} style={{
+            padding:"8px 20px", borderRadius:"20px 0 0 20px", border:"2px solid rgba(255,255,255,0.15)",
+            borderRight:"1px solid rgba(255,255,255,0.15)",
+            background: viewMode === "cards" ? "#2d5a27" : "rgba(255,255,255,0.06)",
+            color: viewMode === "cards" ? "#fff" : "rgba(255,255,255,0.5)",
+            fontSize:14, fontWeight:700, cursor:"pointer", transition:"all 0.2s",
+          }}>
+            📷 図鑑
+          </button>
+          <button onClick={() => setViewMode("map")} style={{
+            padding:"8px 20px", borderRadius:"0 20px 20px 0", border:"2px solid rgba(255,255,255,0.15)",
+            borderLeft:"1px solid rgba(255,255,255,0.15)",
+            background: viewMode === "map" ? "#2d5a27" : "rgba(255,255,255,0.06)",
+            color: viewMode === "map" ? "#fff" : "rgba(255,255,255,0.5)",
+            fontSize:14, fontWeight:700, cursor:"pointer", transition:"all 0.2s",
+          }}>
+            🗺️ マップ
+          </button>
+        </div>
+      </header>
+
+      {viewMode === "cards" ? (
+        <>
+          {/* Toolbar */}
+          <div style={{
+            position:"sticky", top:0, zIndex:100,
+            background:"rgba(15,31,15,0.92)", backdropFilter:"blur(12px)",
+            borderBottom:"1px solid rgba(255,255,255,0.06)",
+            padding:"12px 16px",
+          }}>
+            {/* Search */}
+            <div style={{ maxWidth:900, margin:"0 auto 10px", position:"relative" }}>
+              <input
+                type="text"
+                placeholder="山名・地域・メンバーで検索..."
+                value={searchText}
+                onChange={e => setSearchText(e.target.value)}
+                style={{
+                  width:"100%", padding:"10px 16px 10px 40px", borderRadius:12,
+                  border:"2px solid rgba(255,255,255,0.1)", background:"rgba(255,255,255,0.06)",
+                  color:"#fff", fontSize:14, outline:"none", boxSizing:"border-box",
+                  fontFamily:"inherit",
+                }}
+              />
+              <span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", fontSize:16, opacity:0.5 }}>🔍</span>
+            </div>
+
+            {/* Filters row */}
+            <div style={{ maxWidth:900, margin:"0 auto", overflowX:"auto", display:"flex", gap:6, alignItems:"center", paddingBottom:4 }}>
+              <span style={{ color:"rgba(255,255,255,0.4)", fontSize:12, fontWeight:700, marginRight:4, whiteSpace:"nowrap" }}>季節</span>
+              {["all","春","夏","秋","冬"].map(s => (
+                <button key={s} style={btnStyle(seasonFilter === s)} onClick={() => setSeasonFilter(s)}>
+                  {s === "all" ? "全て" : `${getSeasonEmoji(s)} ${s}`}
+                </button>
+              ))}
+
+              <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 4px" }}>|</span>
+              <span style={{ color:"rgba(255,255,255,0.4)", fontSize:12, fontWeight:700, marginRight:4, whiteSpace:"nowrap" }}>難易度</span>
+              {[["all","全て"],["beginner","初級"],["mid","中級"],["advanced","上級"],["expert","健脚"],["none","未設定"]].map(([v, l]) => (
+                <button key={v} style={btnStyle(diffFilter === v)} onClick={() => setDiffFilter(v)}>{l}</button>
+              ))}
+
+              <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 4px" }}>|</span>
+              <select value={prefFilter} onChange={e => setPrefFilter(e.target.value)}
+                style={{
+                  padding:"7px 12px", borderRadius:24, border:"none",
+                  background:"rgba(255,255,255,0.08)", color:"rgba(255,255,255,0.7)",
+                  fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit",
+                }}>
+                <option value="all">全地域</option>
+                {prefectures.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+
+              <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 4px" }}>|</span>
+              <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+                style={{
+                  padding:"7px 12px", borderRadius:24, border:"none",
+                  background:"rgba(255,255,255,0.08)", color:"rgba(255,255,255,0.7)",
+                  fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit",
+                }}>
+                <option value="date-desc">新しい順</option>
+                <option value="date-asc">古い順</option>
+                <option value="diff-asc">難易度 低→高</option>
+                <option value="diff-desc">難易度 高→低</option>
+                <option value="name">山名順</option>
+              </select>
+
+              <button style={btnStyle(showFavsOnly)} onClick={() => setShowFavsOnly(!showFavsOnly)}>
+                ❤️ お気に入り
+              </button>
+
+              <button style={{...btnStyle(false), marginLeft:"auto"}} onClick={() => setShowAdmin(true)}>
+                ⚙️ 管理
+              </button>
+            </div>
+          </div>
+
+          {/* Results count */}
+          <div style={{ maxWidth:1200, margin:"0 auto", padding:"16px 20px 4px" }}>
+            <p style={{ margin:0, color:"rgba(255,255,255,0.4)", fontSize:13, fontWeight:600 }}>
+              {filtered.length} / {treks.length} 件表示
+            </p>
+          </div>
+
+          {/* Card Grid */}
+          <main style={{
+            maxWidth:1200, margin:"0 auto", padding:"8px 20px 60px",
+            display:"grid",
+            gridTemplateColumns:"repeat(auto-fill, minmax(300px, 1fr))",
+            gap:20,
+          }}>
+            {filtered.length === 0 ? (
+              <div style={{ gridColumn:"1/-1", textAlign:"center", padding:"60px 20px", color:"rgba(255,255,255,0.4)" }}>
+                <div style={{ fontSize:48, marginBottom:16 }}>🏔️</div>
+                <p style={{ fontSize:16, fontWeight:600 }}>条件に一致する山が見つかりません</p>
+                <button onClick={() => { setSeasonFilter("all"); setDiffFilter("all"); setPrefFilter("all"); setShowFavsOnly(false); setSearchText(""); }}
+                  style={{ marginTop:12, padding:"10px 24px", borderRadius:12, background:"#2d5a27", color:"#fff", border:"none", fontSize:14, fontWeight:700, cursor:"pointer" }}>
+                  フィルターをリセット
+                </button>
+              </div>
+            ) : (
+              filtered.map(trek => (
+                <TrekCard
+                  key={trek.id}
+                  trek={trek}
+                  isFav={favorites.has(trek.id)}
+                  onToggleFav={toggleFav}
+                  onClick={() => setSelectedTrek(trek)}
+                />
+              ))
+            )}
+          </main>
+        </>
+      ) : (
+        <>
+          {/* Map mode admin button */}
+          <div style={{ maxWidth:1200, margin:"0 auto", padding:"12px 20px 0", textAlign:"right" }}>
+            <button style={{
+              padding:"7px 16px", borderRadius:24, border:"none",
+              background:"rgba(255,255,255,0.08)", color:"rgba(255,255,255,0.7)",
+              fontSize:13, fontWeight:600, cursor:"pointer",
+            }} onClick={() => setShowAdmin(true)}>
+              ⚙️ 管理
+            </button>
+          </div>
+          <MapView treks={treks} onSelectTrek={setSelectedTrek} />
+        </>
+      )}
+
+      {/* Footer */}
+      <footer style={{ textAlign:"center", padding:"24px 20px 40px" }}>
+        <p style={{ margin:"0 0 16px", color:"rgba(255,255,255,0.25)", fontSize:12, fontWeight:500 }}>
+          ヤマハトレッキングクラブ © 2022–2026 · Data: {treks.length} mountains
+        </p>
+        {/* Admin: Sync & Settings */}
+        <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
+          <button onClick={() => {
+            if (typeof sendPrompt === "function") {
+              sendPrompt("Google Sheetsのトレッキングデータを取得して、ヤマハトレッキング図鑑アプリのINITIAL_DATAを最新に更新してください。シートURL: https://docs.google.com/spreadsheets/d/1itgeD4xSuAVOEzhxU9PocPuk85A8CI56nu9sdxM0KWg/edit?usp=sharing");
+            }
+          }} style={{
+            padding:"8px 18px", borderRadius:20,
+            background:"rgba(255,255,255,0.06)", color:"rgba(255,255,255,0.35)",
+            border:"1px solid rgba(255,255,255,0.08)", fontSize:12, fontWeight:600,
+            cursor:"pointer", transition:"all 0.2s", fontFamily:"inherit",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.35)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+          >
+            🔄 シート同期
+          </button>
+          <button onClick={() => setShowAdmin(true)} style={{
+            padding:"8px 18px", borderRadius:20,
+            background:"rgba(255,255,255,0.06)", color:"rgba(255,255,255,0.35)",
+            border:"1px solid rgba(255,255,255,0.08)", fontSize:12, fontWeight:600,
+            cursor:"pointer", transition:"all 0.2s", fontFamily:"inherit",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+          onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.35)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+          >
+            ⚙️ 管理
+          </button>
+        </div>
+      </footer>
+
+      {/* Modals */}
+      {selectedTrek && (
+        <DetailModal
+          trek={selectedTrek}
+          onClose={() => setSelectedTrek(null)}
+          allTreks={treks}
+        />
+      )}
+      {showAdmin && (
+        <AdminPanel
+          treks={treks}
+          onAddTrek={addTrek}
+          onAddPhoto={addPhoto}
+          onExport={exportData}
+          onImport={importData}
+          onClose={() => setShowAdmin(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(React.createElement(TrekkingApp));
+</script>
+</body>
+</html>
