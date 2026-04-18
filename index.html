@@ -106,13 +106,13 @@ const getSeasonEmoji = (s) => ({ "春": "🌸", "夏": "☀️", "秋": "🍁", 
 const getDiffLabel = (d) => {
   if (!d) return "未設定";
   if (d < 30) return "初級";
-  if (d <= 43) return "中級";
+  if (d <= 44) return "中級";
   return "上級";
 };
 const getDiffColor = (d) => {
   if (!d) return "#94a3b8";
   if (d < 30) return "#22c55e";
-  if (d <= 43) return "#eab308";
+  if (d <= 44) return "#eab308";
   return "#ef4444";
 };
 const formatDate = (d) => {
@@ -687,7 +687,7 @@ function MapView({ treks, onSelectTrek }) {
       const createIcon = (difficulty) => {
         const color = difficulty ? (
           difficulty < 30 ? "#22c55e" :
-          difficulty <= 43 ? "#eab308" : "#ef4444"
+          difficulty <= 44 ? "#eab308" : "#ef4444"
         ) : "#94a3b8";
 
         return L.divIcon({
@@ -792,8 +792,8 @@ function MapView({ treks, onSelectTrek }) {
       }}>
         {[
           { color:"#22c55e", label:"初級 (〜29)" },
-          { color:"#eab308", label:"中級 (30〜43)" },
-          { color:"#ef4444", label:"上級 (44〜)" },
+          { color:"#eab308", label:"中級 (30〜44)" },
+          { color:"#ef4444", label:"上級 (45〜)" },
           { color:"#94a3b8", label:"未設定" },
         ].map(({ color, label }) => (
           <div key={label} style={{ display:"flex", alignItems:"center", gap:6 }}>
@@ -958,8 +958,8 @@ function TrekkingApp() {
     if (seasonFilter !== "all") result = result.filter(t => getSeason(t.date) === seasonFilter);
     if (diffFilter !== "all") {
       if (diffFilter === "beginner") result = result.filter(t => t.difficulty && t.difficulty < 30);
-      if (diffFilter === "mid") result = result.filter(t => t.difficulty && t.difficulty >= 30 && t.difficulty <= 43);
-      if (diffFilter === "advanced") result = result.filter(t => t.difficulty && t.difficulty >= 44);
+      if (diffFilter === "mid") result = result.filter(t => t.difficulty && t.difficulty >= 30 && t.difficulty <= 44);
+      if (diffFilter === "advanced") result = result.filter(t => t.difficulty && t.difficulty >= 45);
       if (diffFilter === "none") result = result.filter(t => !t.difficulty);
     }
     if (prefFilter !== "all") result = result.filter(t => getPrefecture(t.region) === prefFilter);
