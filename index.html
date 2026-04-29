@@ -832,10 +832,8 @@ function StatsBar({ treks }) {
   const maxElev = treks.filter(t => t.elevation).reduce((max, t) => t.elevation > max ? t.elevation : max, 0);
   const stats = [
     { label:"登った山", value:treks.length, unit:"座" },
-    { label:"活動県", value:prefectures.size, unit:"県" },
     { label:"仲間", value:members.size, unit:"人" },
     { label:"動画", value:withVideo, unit:"本" },
-    { label:"最高峰", value:maxElev.toLocaleString(), unit:"m" },
   ];
   return (
     <div style={{ display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap", marginBottom:8 }}>
@@ -1089,45 +1087,57 @@ function TrekkingApp() {
             </div>
 
             {/* Filters row */}
-            <div style={{ maxWidth:900, margin:"0 auto", overflowX:"auto", display:"flex", gap:6, alignItems:"center", paddingBottom:4 }}>
-              <span style={{ color:"rgba(255,255,255,0.4)", fontSize:12, fontWeight:700, marginRight:4, whiteSpace:"nowrap" }}>季節</span>
-              {["all","春","夏","秋","冬"].map(s => (
-                <button key={s} style={btnStyle(seasonFilter === s)} onClick={() => setSeasonFilter(s)}>
-                  {s === "all" ? "全て" : `${getSeasonEmoji(s)} ${s}`}
+            <div style={{ maxWidth:900, margin:"0 auto", overflowX:"auto", display:"flex", gap:6, alignItems:"center", paddingBottom:4, flexWrap:"nowrap" }}>
+              {/* 新しい順 トグル */}
+              <button
+                style={btnStyle(sortBy === "date-desc" || sortBy === "date-asc")}
+                onClick={() => setSortBy(sortBy === "date-desc" ? "date-asc" : "date-desc")}
+              >
+                {sortBy === "date-asc" ? "⬆ 古い順" : "⬇ 新しい順"}
+              </button>
+
+              <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 2px" }}>|</span>
+
+              {/* 難易度 シングルセレクト */}
+              {[["beginner","初級"],["mid","中級"],["advanced","上級"],["none","未設定"]].map(([v, l]) => (
+                <button key={v}
+                  style={btnStyle(diffFilter === v)}
+                  onClick={() => setDiffFilter(diffFilter === v ? "all" : v)}>{l}</button>
+              ))}
+
+              <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 2px" }}>|</span>
+
+              {/* 標高順 トグル */}
+              <button
+                style={btnStyle(sortBy === "elev-desc" || sortBy === "elev-asc")}
+                onClick={() => setSortBy(sortBy === "elev-desc" ? "elev-asc" : "elev-desc")}
+              >
+                {sortBy === "elev-asc" ? "⬆ 標高順" : "⬇ 標高順"}
+              </button>
+
+              <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 2px" }}>|</span>
+
+              {/* 季節 シングルセレクト */}
+              {["春","夏","秋","冬"].map(s => (
+                <button key={s}
+                  style={btnStyle(seasonFilter === s)}
+                  onClick={() => setSeasonFilter(seasonFilter === s ? "all" : s)}>
+                  {`${getSeasonEmoji(s)} ${s}`}
                 </button>
               ))}
 
-              <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 4px" }}>|</span>
-              <span style={{ color:"rgba(255,255,255,0.4)", fontSize:12, fontWeight:700, marginRight:4, whiteSpace:"nowrap" }}>難易度</span>
-              {[["all","全て"],["beginner","初級"],["mid","中級"],["advanced","上級"],["none","未設定"]].map(([v, l]) => (
-                <button key={v} style={btnStyle(diffFilter === v)} onClick={() => setDiffFilter(v)}>{l}</button>
-              ))}
+              <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 2px" }}>|</span>
 
-              <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 4px" }}>|</span>
+              {/* 地域 プルダウン */}
               <select value={prefFilter} onChange={e => setPrefFilter(e.target.value)}
                 style={{
                   padding:"7px 12px", borderRadius:24, border:"none",
-                  background:"rgba(255,255,255,0.08)", color:"rgba(255,255,255,0.7)",
+                  background: prefFilter !== "all" ? "#2d5a27" : "rgba(255,255,255,0.08)",
+                  color: prefFilter !== "all" ? "#fff" : "rgba(255,255,255,0.7)",
                   fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit",
                 }}>
-                <option value="all">全地域</option>
+                <option value="all">🗾 地域</option>
                 {prefectures.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-
-              <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 4px" }}>|</span>
-              <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-                style={{
-                  padding:"7px 12px", borderRadius:24, border:"none",
-                  background:"rgba(255,255,255,0.08)", color:"rgba(255,255,255,0.7)",
-                  fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit",
-                }}>
-                <option value="date-desc">新しい順</option>
-                <option value="date-asc">古い順</option>
-                <option value="diff-asc">難易度 低→高</option>
-                <option value="diff-desc">難易度 高→低</option>
-                <option value="name">山名順</option>
-                <option value="elev-asc">標高 低→高</option>
-                <option value="elev-desc">標高 高→低</option>
               </select>
 
               <button style={btnStyle(showFavsOnly)} onClick={() => setShowFavsOnly(!showFavsOnly)}>
@@ -1158,7 +1168,7 @@ function TrekkingApp() {
               <div style={{ gridColumn:"1/-1", textAlign:"center", padding:"60px 20px", color:"rgba(255,255,255,0.4)" }}>
                 <div style={{ fontSize:48, marginBottom:16 }}>🏔️</div>
                 <p style={{ fontSize:16, fontWeight:600 }}>条件に一致する山が見つかりません</p>
-                <button onClick={() => { setSeasonFilter("all"); setDiffFilter("all"); setPrefFilter("all"); setShowFavsOnly(false); setSearchText(""); }}
+                <button onClick={() => { setSeasonFilter("all"); setDiffFilter("all"); setPrefFilter("all"); setSortBy("date-desc"); setShowFavsOnly(false); setSearchText(""); }}
                   style={{ marginTop:12, padding:"10px 24px", borderRadius:12, background:"#2d5a27", color:"#fff", border:"none", fontSize:14, fontWeight:700, cursor:"pointer" }}>
                   フィルターをリセット
                 </button>
