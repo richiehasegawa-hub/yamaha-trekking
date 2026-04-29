@@ -1098,11 +1098,11 @@ function TrekkingApp() {
 
               <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 2px" }}>|</span>
 
-              {/* 難易度 シングルセレクト */}
+              {/* 難易度 シングルセレクト（他フィルターをリセット） */}
               {[["beginner","初級"],["mid","中級"],["advanced","上級"],["none","未設定"]].map(([v, l]) => (
                 <button key={v}
                   style={btnStyle(diffFilter === v)}
-                  onClick={() => setDiffFilter(diffFilter === v ? "all" : v)}>{l}</button>
+                  onClick={() => { setSeasonFilter("all"); setPrefFilter("all"); setDiffFilter(diffFilter === v ? "all" : v); }}>{l}</button>
               ))}
 
               <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 2px" }}>|</span>
@@ -1117,19 +1117,19 @@ function TrekkingApp() {
 
               <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 2px" }}>|</span>
 
-              {/* 季節 シングルセレクト */}
+              {/* 季節 シングルセレクト（他フィルターをリセット） */}
               {["春","夏","秋","冬"].map(s => (
                 <button key={s}
                   style={btnStyle(seasonFilter === s)}
-                  onClick={() => setSeasonFilter(seasonFilter === s ? "all" : s)}>
+                  onClick={() => { setDiffFilter("all"); setPrefFilter("all"); setSeasonFilter(seasonFilter === s ? "all" : s); }}>
                   {`${getSeasonEmoji(s)} ${s}`}
                 </button>
               ))}
 
               <span style={{ color:"rgba(255,255,255,0.15)", margin:"0 2px" }}>|</span>
 
-              {/* 地域 プルダウン */}
-              <select value={prefFilter} onChange={e => setPrefFilter(e.target.value)}
+              {/* 地域 プルダウン（他フィルターをリセット） */}
+              <select value={prefFilter} onChange={e => { setDiffFilter("all"); setSeasonFilter("all"); setPrefFilter(e.target.value); }}
                 style={{
                   padding:"7px 12px", borderRadius:24, border:"none",
                   background: prefFilter !== "all" ? "#2d5a27" : "rgba(255,255,255,0.08)",
