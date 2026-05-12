@@ -38,7 +38,7 @@ if (typeof sendPrompt === "undefined") { window.sendPrompt = function(msg) { ale
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
-// ─── Initial 43 Trekking Records ───
+// ─── Initial 45 Trekking Records ───
 const INITIAL_DATA = [
   { id:1, date:"2022-05-21", name:"鳳来寺山", lat:34.98289522896481, lng:137.58296896839826, region:"愛知県新城市", difficulty:37, elevation:695, members:"鶴見、長谷川、堀、堀越", blog:"https://81trekking.blog.jp/archives/19490538.html", video:"", excerpt:"記念すべき初回は鳳来寺山(標高681m)、湯谷温泉から行者越えルートで鳳来寺まで登り", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/3/7/37aaed98-s.jpg"] },
   { id:2, date:"2022-06-12", name:"尉ヶ峰", lat:34.8234315468447, lng:137.60816903219427, region:"浜松市引佐", difficulty:39, elevation:433, members:"堀、長谷川、業天、堀越", blog:"https://81trekking.blog.jp/archives/19491550.html", video:"", excerpt:"浜名湖の北にある尉ヶ峰(標高433m)に登った。気軽に登れる山で、", photos:["https://livedoor.blogimg.jp/gonta3880-th6lbesd/imgs/b/f/bf975ad9.jpg"] },
